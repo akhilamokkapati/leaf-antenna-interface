@@ -1,0 +1,8 @@
+# Core engine + custom local web UI (server.py). No web framework needed —
+# server.py uses only the Python standard library (http.server).
+numpy>=1.24
+matplotlib>=3.7
+# Optional: enables the Claude-backed chatbot. Without it, the app uses the
+# built-in offline rule parser. The CST Python libraries ship with CST Studio
+# Suite 2025 and are NOT pip-installable.
+anthropic>=0.40

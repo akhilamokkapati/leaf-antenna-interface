@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Leaf Antenna Design Interface</title>
+<style>
+  :root{
+    --bg:#f3f6f7; --panel:#ffffff; --panel2:#f8fafb;
+    --ink:#0d1b2a; --ink2:#31445c; --muted:#6a7c92; --faint:#9aa8ba;
+    --line:#e7ecf1; --line2:#eff3f6;
+    --accent:#0f766e; --accent2:#13a394; --accent-ink:#0b5c55; --accent-soft:#e5f4f1;
+    --ok-bg:#dcfce7; --ok-ink:#15803d; --no-bg:#fee2e2; --no-ink:#b91c1c;
+    --grid:#edf1f4; --axis:#c7d2de;
+    --shadow-sm:0 1px 2px rgba(13,27,42,.06);
+    --shadow:0 6px 20px -8px rgba(13,27,42,.14), 0 1px 3px rgba(13,27,42,.05);
+    --radius:16px;
+    /* sidebar (branded teal, same in both themes) */
+    --sb:linear-gradient(168deg,#12857b 0%,#0f766e 42%,#0b4f49 100%);
+    --sb-line:rgba(255,255,255,.14);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0a0f16; --panel:#111a24; --panel2:#0e161f;
+      --ink:#e9eef5; --ink2:#c3cfdd; --muted:#8ea0b6; --faint:#61748c;
+      --line:#1d2937; --line2:#17212e;
+      --accent:#2dd4bf; --accent2:#5eead4; --accent-ink:#8bf3e4; --accent-soft:#10302c;
+      --ok-bg:#0f2f1d; --ok-ink:#4ade80; --no-bg:#3a1620; --no-ink:#fca5a5;
+      --grid:#17212e; --axis:#33465e;
+      --shadow-sm:0 1px 2px rgba(0,0,0,.35);
+      --shadow:0 8px 26px -10px rgba(0,0,0,.6);
+      --sb:linear-gradient(168deg,#0d5f58 0%,#0b4f49 45%,#08322e 100%);
+    }
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    font-family:"Segoe UI",-apple-system,BlinkMacSystemFont,Inter,Roboto,system-ui,sans-serif;
+    background:var(--bg); color:var(--ink); font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:var(--accent-soft)}
+  .app{display:grid; grid-template-columns:290px 1fr; min-height:100vh}
+
+  /* ---------- Sidebar (branded) ---------- */
+  .side{background:var(--sb); color:#fff; padding:22px 20px 30px; position:sticky; top:0; height:100vh; overflow:auto}
+  .side::-webkit-scrollbar{width:8px} .side::-webkit-scrollbar-thumb{background:rgba(255,255,255,.22);border-radius:8px}
+  .brand{display:flex; align-items:center; gap:11px; font-weight:800; font-size:16px; letter-spacing:-.01em}
+  .brand .mark{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;
+    background:rgba(255,255,255,.16); backdrop-filter:blur(4px); font-size:17px; box-shadow:inset 0 0 0 1px rgba(255,255,255,.22)}
+  .brand small{display:block; font-weight:500; font-size:10.5px; opacity:.72; letter-spacing:.02em; margin-top:1px}
+  .side h3{font-size:10.5px; text-transform:uppercase; letter-spacing:.12em; color:rgba(255,255,255,.62); margin:26px 2px 14px; font-weight:700}
+  .param{margin-bottom:16px}
+  .param .top{display:flex; justify-content:space-between; align-items:center; margin-bottom:8px}
+  .param .name{font-weight:600; font-size:12.5px; color:rgba(255,255,255,.94)}
+  .param .val{font-variant-numeric:tabular-nums; color:#fff; font-weight:700; font-size:12px;
+    background:rgba(255,255,255,.16); padding:3px 9px; border-radius:20px; min-width:46px; text-align:center}
+  .param .eff{color:rgba(255,255,255,.6); font-size:10.5px; margin-top:6px; line-height:1.4}
+  .side input[type=range]{ -webkit-appearance:none; appearance:none; width:100%; height:5px; border-radius:4px;
+    background:linear-gradient(#fff,#fff) no-repeat, rgba(255,255,255,.24); background-size:var(--fill,50%) 100%; cursor:pointer; margin:3px 0}
+  .side input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:16px; height:16px; border-radius:50%;
+    background:#fff; box-shadow:0 2px 6px rgba(0,0,0,.3); transition:transform .1s}
+  .side input[type=range]:active::-webkit-slider-thumb{transform:scale(1.2)}
+  .side input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;background:#fff;border:none}
+  .side .btn{background:#fff; color:var(--accent-ink); border:none}
+  .side .btn:hover{background:#f0fbf9}
+  .side .btn.ghost{background:transparent; color:#fff; border:1px solid rgba(255,255,255,.38)}
+  .side .btn.ghost:hover{background:rgba(255,255,255,.12)}
+  .side .tgt{color:rgba(255,255,255,.82); font-size:11.5px; line-height:1.55; background:rgba(255,255,255,.1);
+    border:1px solid var(--sb-line); border-radius:11px; padding:11px 13px}
+  .side .tgt b{color:#fff}
+
+  .btn{ appearance:none; border:none; color:#fff; font-weight:650; font-size:13.5px; padding:11px 13px; border-radius:11px;
+    cursor:pointer; width:100%; letter-spacing:.01em; box-shadow:var(--shadow-sm); transition:transform .1s, box-shadow .15s, filter .12s, background .12s}
+  .btn:active{transform:translateY(1px)}
+  .stack{display:flex; flex-direction:column; gap:10px; margin-top:8px}
+
+  /* ---------- Main ---------- */
+  .main{padding:28px 34px 48px; max-width:1320px; margin:0 auto}
+  .head{display:flex; align-items:center; gap:16px; flex-wrap:wrap}
+  .head .htext{flex:1; min-width:260px}
+  .head h1{margin:0; font-size:24px; font-weight:800; letter-spacing:-.025em}
+  .head p{margin:6px 0 0; color:var(--muted); font-size:12.5px}
+  .chip{display:inline-flex; align-items:center; gap:8px; padding:8px 15px; border-radius:24px; font-size:12px; font-weight:600;
+    background:var(--panel); border:1px solid var(--line); color:var(--ink2); box-shadow:var(--shadow-sm); white-space:nowrap}
+  .chip .dot{width:8px;height:8px;border-radius:50%;background:var(--accent2); box-shadow:0 0 0 4px var(--accent-soft); animation:pulse 2.4s ease-in-out infinite}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 3px var(--accent-soft)}50%{box-shadow:0 0 0 6px transparent}}
+
+  .grid2{display:grid; grid-template-columns:1.62fr 1fr; gap:18px; align-items:start; margin-top:22px}
+  @media (max-width:960px){ .app{grid-template-columns:1fr} .side{position:static;height:auto} .grid2{grid-template-columns:1fr} }
+  .card{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:19px 20px; box-shadow:var(--shadow); margin-bottom:18px}
+  .card .ch{display:flex; align-items:center; justify-content:space-between; margin-bottom:15px; gap:12px}
+  .card h2{margin:0; font-size:11.5px; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); font-weight:700}
+  .main .btn.pri{background:linear-gradient(150deg,var(--accent2),var(--accent)); width:auto; padding:9px 16px; font-size:13px}
+  .main .btn.pri:hover{filter:brightness(1.06); box-shadow:var(--shadow)}
+  .btn.small{width:auto; padding:8px 14px; font-size:12.5px}
+  .btn.ghost{background:var(--panel); color:var(--accent-ink); border:1px solid var(--line); box-shadow:none}
+  .btn.ghost:hover{background:var(--accent-soft)}
+  .btn:disabled{opacity:.55; cursor:default; transform:none}
+
+  .metrics{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:16px}
+  .metric{position:relative; background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px 17px 15px; box-shadow:var(--shadow); overflow:hidden}
+  .metric::before{content:""; position:absolute; left:0; top:0; height:3px; width:100%; background:linear-gradient(90deg,var(--accent2),var(--accent))}
+  .metric .k{color:var(--faint); font-size:10.5px; text-transform:uppercase; letter-spacing:.08em; font-weight:700}
+  .metric .v{font-size:27px; font-weight:800; font-variant-numeric:tabular-nums; margin-top:6px; letter-spacing:-.03em}
+  .metric .d{font-size:11.5px; margin-top:4px; color:var(--muted); font-variant-numeric:tabular-nums; font-weight:600}
+  .badge{display:inline-flex; align-items:center; gap:8px; padding:9px 15px; border-radius:24px; font-weight:650; font-size:12.5px; box-shadow:var(--shadow-sm)}
+  .badge.ok{background:var(--ok-bg); color:var(--ok-ink)} .badge.no{background:var(--no-bg); color:var(--no-ink)}
+
+  .legend{display:flex; gap:15px; align-items:center; font-size:11px; color:var(--muted)}
+  .legend span{display:inline-flex; align-items:center; gap:6px}
+  .legend i{width:15px; height:3px; border-radius:2px; display:inline-block}
+  canvas{width:100%; display:block}
+
+  .geo img{width:100%; max-width:245px; display:block; margin:2px auto 0; filter:drop-shadow(0 8px 16px rgba(13,27,42,.13))}
+  .geo .cap{color:var(--faint); font-size:11px; text-align:center; margin-top:12px}
+
+  .chat .msgs{display:flex; flex-direction:column; gap:9px; max-height:250px; overflow:auto; padding:2px; margin-bottom:12px}
+  .msg{padding:9px 13px; border-radius:14px; font-size:12.8px; max-width:90%; line-height:1.45; box-shadow:var(--shadow-sm)}
+  .msg.assistant{background:var(--panel2); align-self:flex-start; border:1px solid var(--line); border-bottom-left-radius:4px}
+  .msg.user{background:linear-gradient(150deg,var(--accent2),var(--accent)); color:#fff; align-self:flex-end; border-bottom-right-radius:4px}
+  .chatbar{display:flex; gap:9px}
+  .chatbar input{flex:1; padding:11px 13px; border:1px solid var(--line); border-radius:12px; background:var(--panel2); color:var(--ink); font-size:13px; transition:border-color .12s, box-shadow .12s}
+  .chatbar input::placeholder{color:var(--faint)}
+  .chatbar input:focus{outline:none; box-shadow:0 0 0 3px var(--accent-soft); border-color:var(--accent)}
+  .hint{color:var(--faint); font-size:11px; margin-top:9px}
+
+  .optrow{display:flex; gap:16px; align-items:center; flex-wrap:wrap}
+  .optrow label{display:flex; gap:8px; align-items:center; font-size:12.5px; color:var(--ink2); font-weight:500}
+  .optrow input[type=checkbox]{width:16px;height:16px;accent-color:var(--accent)}
+  .optrow input[type=number]{width:84px; padding:8px 10px; border:1px solid var(--line); border-radius:10px; background:var(--panel2); color:var(--ink); font-variant-numeric:tabular-nums}
+  .note{margin-top:14px; padding:12px 15px; border-radius:12px; background:var(--accent-soft); color:var(--accent-ink); font-size:12.5px; font-weight:500; border:1px solid var(--line); display:none}
+  .note.show{display:block}
+
+  table{width:100%; border-collapse:collapse; font-size:12px; font-variant-numeric:tabular-nums}
+  th,td{padding:8px 9px; text-align:right; border-bottom:1px solid var(--line2); white-space:nowrap}
+  th:first-child,td:first-child{text-align:left}
+  thead th{color:var(--faint); font-weight:700; text-transform:uppercase; font-size:10px; letter-spacing:.05em; border-bottom:1.5px solid var(--line)}
+  tbody tr:hover{background:var(--line2)}
+  tbody tr:first-child td{font-weight:600; color:var(--ink)}
+
+  details{border:1px solid var(--line); border-radius:var(--radius); padding:0 18px; background:var(--panel); margin-bottom:18px; box-shadow:var(--shadow)}
+  details>summary{cursor:pointer; padding:16px 0; font-weight:700; font-size:11.5px; list-style:none; color:var(--muted); text-transform:uppercase; letter-spacing:.09em}
+  details>summary::-webkit-details-marker{display:none}
+  details>summary::before{content:"▸"; color:var(--accent); margin-right:9px; display:inline-block; transition:transform .15s}
+  details[open]>summary::before{transform:rotate(90deg)}
+  pre{background:var(--panel2); border:1px solid var(--line); border-radius:11px; padding:14px; overflow:auto; font-size:12px; margin:0 0 12px; line-height:1.55; color:var(--ink2)}
+  .spin{width:14px;height:14px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;display:inline-block;animation:sp .7s linear infinite;vertical-align:-2px}
+  .spin.dark{border:2px solid var(--accent-soft);border-top-color:var(--accent)}
+  @keyframes sp{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="side">
+    <div class="brand"><span class="mark">🍃</span><span>Leaf Antenna<small>Design Interface</small></span></div>
+    <h3>Parameters</h3>
+    <div id="params"></div>
+    <div class="stack">
+      <button class="btn" id="runBtn">▶ Run Simulation</button>
+      <button class="btn ghost" id="resetBtn">↺ Reset to defaults</button>
+    </div>
+    <h3>Target spec</h3>
+    <div class="tgt">Resonance <b>2.45 GHz</b> · S₁₁ ≤ −10 dB across <b>2.400–2.4835 GHz</b> (WiFi band).</div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="head">
+      <div class="htext">
+        <h1>Leaf Antenna Design Interface</h1>
+        <p>AI-assisted tuning of a biomimetic 2.45 GHz WiFi antenna · 30.102 EM 1D · Group 06</p>
+      </div>
+      <div class="chip"><span class="dot"></span><span id="banner">Loading…</span></div>
+    </div>
+
+    <div class="grid2">
+      <!-- LEFT: results -->
+      <div>
+        <div class="metrics">
+          <div class="metric"><div class="k">Resonant freq</div><div class="v" id="mFreq">—</div><div class="d" id="mFreqD"></div></div>
+          <div class="metric"><div class="k">Min S₁₁</div><div class="v" id="mS11">—</div><div class="d">deepest dip</div></div>
+          <div class="metric"><div class="k">Max gain</div><div class="v" id="mGain">—</div><div class="d">boresight</div></div>
+        </div>
+        <div id="coverWrap" style="margin-bottom:16px"></div>
+        <div class="card">
+          <div class="ch">
+            <h2>S₁₁ response</h2>
+            <div class="legend">
+              <span><i style="background:var(--accent)"></i>current</span>
+              <span><i style="background:var(--faint)"></i>previous</span>
+              <span><i style="background:var(--axis)"></i>−10 dB</span>
+            </div>
+          </div>
+          <canvas id="chart" height="336"></canvas>
+        </div>
+      </div>
+
+      <!-- RIGHT: geometry + chat -->
+      <div>
+        <div class="card geo">
+          <div class="ch"><h2>Geometry preview</h2></div>
+          <img id="geo" alt="leaf preview" />
+          <div class="cap">Illustrative only — CST's macro owns the real geometry.</div>
+        </div>
+        <div class="card chat">
+          <div class="ch"><h2>Design assistant</h2></div>
+          <div class="msgs" id="msgs"></div>
+          <div class="chatbar">
+            <input id="chatIn" placeholder="e.g. add 2 fins, resonate lower, deeper match" />
+            <button class="btn pri" id="chatBtn">Send</button>
+          </div>
+          <div class="hint">Try: “add 2 fins” · “set leaf length to 80” · “make it resonate lower” · “reset”.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- OPTIMIZE -->
+    <div class="card">
+      <div class="ch"><h2>Auto-optimize</h2></div>
+      <div class="optrow">
+        <label><input type="checkbox" id="optAll" checked /> Search all 6 parameters</label>
+        <label>Eval budget <input type="number" id="optBudget" value="300" min="4" max="1000" step="4" /></label>
+        <button class="btn pri" id="optBtn">⚙ Optimize</button>
+        <span id="optSpin"></span>
+      </div>
+      <div class="note" id="optNote"></div>
+    </div>
+
+    <!-- VBA -->
+    <details id="vbaBox">
+      <summary>CST macro — pasteable VBA</summary>
+      <div class="hint" style="margin-bottom:10px">Paste into CST: Home ▸ Macros ▸ Edit/Debug ▸ new macro ▸ Run. <code>use_dxf_defaults</code> is forced to 0 so your values aren't wiped.</div>
+      <pre id="vba">—</pre>
+      <button class="btn ghost small" id="copyVba" style="margin-bottom:14px">Copy VBA</button>
+    </details>
+
+    <!-- HISTORY -->
+    <div class="card">
+      <div class="ch">
+        <h2>Run history</h2>
+        <button class="btn ghost small" id="csvBtn">⬇ Download CSV</button>
+      </div>
+      <div id="histWrap"><div class="hint">No runs yet — press Run Simulation.</div></div>
+    </div>
+  </main>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+let CFG=null, params={}, history=[], runs=[], lastSim=null, geoTimer=null;
+
+async function api(path, body){
+  const r = await fetch(path, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+  return r.json();
+}
+
+// ---------- init ----------
+(async function init(){
+  CFG = await (await fetch('/api/config')).json();
+  $('#banner').textContent = CFG.banner;
+  params = {...CFG.defaults};
+  buildSliders();
+  // In live CST mode each optimizer eval is a real ~2-min solve, so default to
+  // the 2 most influential params + a tiny budget, and warn about wall-clock time.
+  if(!CFG.demo_mode){
+    $('#optAll').checked = false;
+    $('#optBudget').value = 8;
+    const w=document.createElement('div'); w.className='hint';
+    w.style.color='var(--no-ink)';
+    w.textContent='Live CST mode: each eval is a full ~2-min solve. Keep the budget small (8–12). "Search all 6" is much slower.';
+    $('#optNote').parentElement.insertBefore(w, $('#optNote'));
+  }
+  addMsg('assistant', "Hi! Tell me what to change — e.g. “add 2 fins”, “set leaf length to 80”, or “make it resonate lower”.");
+  refreshGeometry(); refreshVba();
+})();
+
+// ---------- sliders ----------
+function buildSliders(){
+  const box = $('#params'); box.innerHTML='';
+  for(const k of CFG.order){
+    const s = CFG.spec[k];
+    const wrap = document.createElement('div'); wrap.className='param';
+    wrap.innerHTML = `
+      <div class="top"><span class="name">${k}</span><span class="val" id="v_${k}"></span></div>
+      <input type="range" id="s_${k}" min="${s.min}" max="${s.max}" step="${s.step}" value="${params[k]}">
+      <div class="eff">${s.effect}</div>`;
+    box.appendChild(wrap);
+    const inp = wrap.querySelector('input');
+    inp.addEventListener('input', ()=>{
+      params[k] = s.is_int ? Math.round(+inp.value) : +(+inp.value).toFixed(3);
+      paintSlider(k); scheduleGeometry(); refreshVba();
+    });
+    paintSlider(k);
+  }
+}
+function paintSlider(k){
+  const s=CFG.spec[k], inp=$('#s_'+k);
+  inp.value = params[k];
+  const pct = (params[k]-s.min)/(s.max-s.min)*100;
+  inp.style.setProperty('--fill', pct+'%');
+  $('#v_'+k).textContent = s.is_int ? params[k] : (+params[k]).toFixed(s.step<1?1:0) + (s.unit? ' '+s.unit:'');
+}
+function setParams(obj){ for(const k in obj){ if(k in params){ params[k]=obj[k]; paintSlider(k);} } scheduleGeometry(); refreshVba(); }
+
+// ---------- geometry + vba ----------
+function scheduleGeometry(){ clearTimeout(geoTimer); geoTimer=setTimeout(refreshGeometry, 140); }
+async function refreshGeometry(){ const r = await api('/api/geometry',{params}); if(r.png) $('#geo').src='data:image/png;base64,'+r.png; }
+async function refreshVba(){ const r = await api('/api/vba',{params}); if(r.vba) $('#vba').textContent=r.vba; }
+
+// ---------- run / render ----------
+async function run(){
+  const btn=$('#runBtn'); btn.disabled=true; const t=btn.textContent; btn.innerHTML='<span class="spin dark"></span> Running…';
+  const r = await api('/api/simulate',{params});
+  btn.disabled=false; btn.textContent=t;
+  if(r.error){ alert('Simulation failed: '+r.error); return; }
+  lastSim=r; runs.push(r); if(runs.length>5) runs.shift();
+  renderResult(r); addHistory(r);
+}
+function renderResult(r){
+  const a=r.analysis;
+  const dMHz=(a.resonant_freq-CFG.target)*1000;
+  $('#mFreq').textContent = a.resonant_freq.toFixed(3)+' GHz';
+  const de=$('#mFreqD'); de.textContent=(dMHz>=0?'+':'')+dMHz.toFixed(0)+' MHz vs 2.45';
+  de.style.color = Math.abs(dMHz)<=20 ? 'var(--ok-ink)' : 'var(--muted)';
+  $('#mS11').textContent = a.min_s11.toFixed(1)+' dB';
+  $('#mGain').textContent = r.gain==null? '—' : r.gain.toFixed(2)+' dBi';
+  $('#coverWrap').innerHTML = a.covers_wifi_band
+    ? '<span class="badge ok">✓ Covers WiFi band (2.400–2.4835 GHz ≤ −10 dB)</span>'
+    : '<span class="badge no">✗ Does not cover full WiFi band</span>';
+  drawChart();
+}
+
+// ---------- chart ----------
+function themeColors(){
+  const cs=getComputedStyle(document.documentElement);
+  const g=n=>cs.getPropertyValue(n).trim();
+  return { ink:g('--ink'), muted:g('--muted'), faint:g('--faint'), grid:g('--grid'), axis:g('--axis'),
+           accent:g('--accent'), soft:g('--accent-soft'), line:g('--line'), panel:g('--panel') };
+}
+function hexA(hex,a){
+  const m=hex.replace('#',''); if(m.length!==6) return hex;
+  const r=parseInt(m.slice(0,2),16),g=parseInt(m.slice(2,4),16),b=parseInt(m.slice(4,6),16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+function drawChart(){
+  const cv=$('#chart'), C=themeColors();
+  const dpr=window.devicePixelRatio||1;
+  const W=cv.clientWidth, H=336; cv.width=W*dpr; cv.height=H*dpr;
+  const g=cv.getContext('2d'); g.setTransform(dpr,0,0,dpr,0,0); g.clearRect(0,0,W,H);
+  const L=52,Rp=16,T=14,B=38, x0=L,x1=W-Rp,y0=T,y1=H-B;
+  const fx0=2.2, fx1=2.7;
+  let ymin=-35; if(lastSim) ymin=Math.min(-35, Math.min(...lastSim.s11_db)-3); const ymax=1;
+  const X=f=>x0+(f-fx0)/(fx1-fx0)*(x1-x0);
+  const Y=v=>y0+(ymax-v)/(ymax-ymin)*(y1-y0);
+
+  // wifi band shading
+  g.fillStyle=hexA(C.accent,0.10);
+  g.fillRect(X(CFG.wifi_band[0]),y0, X(CFG.wifi_band[1])-X(CFG.wifi_band[0]), y1-y0);
+  g.fillStyle=C.faint; g.font='10px "Segoe UI",system-ui'; g.textAlign='center';
+  g.fillText('WiFi band', (X(CFG.wifi_band[0])+X(CFG.wifi_band[1]))/2, y0+12);
+
+  // grid
+  g.strokeStyle=C.grid; g.lineWidth=1; g.font='11px "Segoe UI",system-ui';
+  g.textAlign='center'; g.fillStyle=C.muted;
+  for(let f=2.2; f<=2.7001; f+=0.1){ const x=X(f); g.beginPath(); g.moveTo(x,y0); g.lineTo(x,y1); g.stroke(); g.fillText(f.toFixed(1), x, y1+17); }
+  g.textAlign='right';
+  const step=(ymax-ymin)>40?10:5;
+  for(let v=Math.ceil(ymin/step)*step; v<=ymax; v+=step){ const y=Y(v); g.beginPath(); g.moveTo(x0,y); g.lineTo(x1,y); g.stroke(); g.fillStyle=C.muted; g.fillText(v, x0-9, y+3.5); }
+
+  // axis border + -10 dB + target
+  g.strokeStyle=C.axis; g.lineWidth=1.2; g.strokeRect(x0,y0,x1-x0,y1-y0);
+  g.strokeStyle=hexA(C.axis,0.95); g.lineWidth=1.4; g.setLineDash([6,4]); g.beginPath(); g.moveTo(x0,Y(-10)); g.lineTo(x1,Y(-10)); g.stroke(); g.setLineDash([]);
+  g.textAlign='left'; g.fillStyle=C.muted; g.fillText('−10 dB', x0+6, Y(-10)-5);
+  g.strokeStyle=hexA(C.accent,0.35); g.lineWidth=1; g.setLineDash([3,3]); g.beginPath(); g.moveTo(X(2.45),y0); g.lineTo(X(2.45),y1); g.stroke(); g.setLineDash([]);
+
+  // axis titles
+  g.fillStyle=C.muted; g.font='11px "Segoe UI",system-ui'; g.textAlign='center';
+  g.fillText('Frequency (GHz)',(x0+x1)/2, H-6);
+  g.save(); g.translate(14,(y0+y1)/2); g.rotate(-Math.PI/2); g.fillText('S₁₁ (dB)',0,0); g.restore();
+
+  const plot=(fr,s11,color,w,alpha)=>{ g.globalAlpha=alpha; g.strokeStyle=color; g.lineWidth=w; g.lineJoin='round';
+    g.beginPath(); for(let i=0;i<fr.length;i++){ const x=X(fr[i]),y=Y(s11[i]); i?g.lineTo(x,y):g.moveTo(x,y);} g.stroke(); g.globalAlpha=1; };
+
+  for(let i=0;i<runs.length-1;i++) plot(runs[i].freqs, runs[i].s11_db, C.faint, 1.2, .4);
+
+  if(lastSim){
+    const fr=lastSim.freqs, s11=lastSim.s11_db;
+    const grad=g.createLinearGradient(0,y0,0,y1);
+    grad.addColorStop(0, hexA(C.accent,0.03)); grad.addColorStop(1, hexA(C.accent,0.22));
+    g.beginPath(); g.moveTo(X(fr[0]),y1);
+    for(let i=0;i<fr.length;i++) g.lineTo(X(fr[i]),Y(s11[i]));
+    g.lineTo(X(fr[fr.length-1]),y1); g.closePath(); g.fillStyle=grad; g.fill();
+    plot(fr,s11,C.accent,2.6,1);
+    let im=0; for(let i=1;i<s11.length;i++) if(s11[i]<s11[im]) im=i;
+    const mx=X(fr[im]),my=Y(s11[im]);
+    g.fillStyle=C.accent; g.strokeStyle=C.panel; g.lineWidth=2.5;
+    g.beginPath(); g.arc(mx,my,5,0,7); g.fill(); g.stroke();
+    g.fillStyle=C.ink; g.font='600 11px "Segoe UI",system-ui'; g.textAlign='center';
+    g.fillText(fr[im].toFixed(3)+' GHz', Math.min(Math.max(mx,x0+30),x1-30), my+22);
+  }
+}
+window.addEventListener('resize', ()=>{ if(lastSim) drawChart(); });
+
+// ---------- chat ----------
+function addMsg(role,text){ const d=document.createElement('div'); d.className='msg '+role; d.textContent=text; $('#msgs').appendChild(d); $('#msgs').scrollTop=1e9; }
+async function chat(){
+  const inp=$('#chatIn'); const m=inp.value.trim(); if(!m) return; inp.value='';
+  addMsg('user',m);
+  const r=await api('/api/chat',{message:m, params});
+  if(r.changes && Object.keys(r.changes).length) setParams(r.changes);
+  addMsg('assistant', r.reply || 'Done.');
+}
+
+// ---------- optimize ----------
+async function optimize(){
+  const includeAll=$('#optAll').checked, budget=+$('#optBudget').value;
+  // In live CST mode, guard against multi-hour runs: estimate wall-clock and confirm.
+  if(!CFG.demo_mode){
+    const perEval=120; // seconds per real solve (approx)
+    const mins=Math.round(includeAll? budget*perEval/60 : Math.min(budget,budget)*perEval/60);
+    if(!confirm(`Live CST optimize: up to ${budget} solves × ~2 min ≈ ${mins} min of real solving`+
+                (includeAll?` (all 6 params — slowest).`:`.`)+`\n\nProceed?`)) return;
+  }
+  const btn=$('#optBtn'); btn.disabled=true; $('#optSpin').innerHTML='<span class="spin dark"></span> searching…';
+  const r=await api('/api/optimize',{params, include_all:includeAll, budget:budget});
+  btn.disabled=false; $('#optSpin').innerHTML='';
+  if(r.error){ alert('Optimization failed: '+r.error); return; }
+  setParams(r.params);
+  const sim={params:r.params, freqs:r.freqs, s11_db:r.s11_db, gain:r.gain, analysis:r.analysis};
+  lastSim=sim; runs.push(sim); if(runs.length>5) runs.shift();
+  renderResult(sim); addHistory(sim);
+  const p=r.params;
+  const note=$('#optNote'); note.classList.add('show');
+  note.innerHTML = `<b>Best design found.</b> num_fin_pairs=${p.num_fin_pairs}, leaf_length=${p.leaf_length} mm → `+
+    `f_res ${r.analysis.resonant_freq.toFixed(3)} GHz, min S₁₁ ${r.analysis.min_s11.toFixed(1)} dB `+
+    `(${r.analysis.covers_wifi_band?'covers band ✓':'not covering'}, score ${r.score}, ${r.evals} evals). Loaded into sliders.`;
+}
+
+// ---------- history ----------
+function addHistory(r){
+  const a=r.analysis, row={run:history.length+1};
+  for(const k of CFG.order) row[k]=r.params[k];
+  row['f_res (GHz)']=+a.resonant_freq.toFixed(4); row['min S11 (dB)']=+a.min_s11.toFixed(2);
+  row['gain (dBi)']=r.gain==null?'':+(+r.gain).toFixed(2); row['covers']=a.covers_wifi_band?'yes':'no';
+  history.push(row); renderHistory();
+}
+function renderHistory(){
+  if(!history.length) return;
+  const cols=Object.keys(history[0]);
+  let h='<table><thead><tr>'+cols.map(c=>`<th>${c}</th>`).join('')+'</tr></thead><tbody>';
+  for(const r of history.slice().reverse()) h+='<tr>'+cols.map(c=>`<td>${r[c]}</td>`).join('')+'</tr>';
+  h+='</tbody></table>'; $('#histWrap').innerHTML=h;
+}
+function downloadCsv(){
+  if(!history.length) return;
+  const cols=Object.keys(history[0]);
+  const lines=[cols.join(',')].concat(history.map(r=>cols.map(c=>r[c]).join(',')));
+  const blob=new Blob([lines.join('\n')],{type:'text/csv'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='leaf_antenna_runs.csv'; a.click();
+}
+
+// ---------- wiring ----------
+$('#runBtn').onclick=run;
+$('#resetBtn').onclick=()=>{ setParams({...CFG.defaults}); };
+$('#chatBtn').onclick=chat;
+$('#chatIn').addEventListener('keydown',e=>{ if(e.key==='Enter') chat(); });
+$('#optBtn').onclick=optimize;
+$('#csvBtn').onclick=downloadCsv;
+$('#copyVba').onclick=()=>{ navigator.clipboard.writeText($('#vba').textContent); $('#copyVba').textContent='Copied ✓'; setTimeout(()=>$('#copyVba').textContent='Copy VBA',1200); };
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{ if(lastSim) drawChart(); });
+</script>
+</body>
+</html>

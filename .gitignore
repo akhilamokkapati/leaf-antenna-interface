@@ -1,0 +1,18 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# CST working project + solver results (generated fresh by the app/macro)
+leaf_live.cst
+leaf_live/
+*.cst
+
+# Local env / editor
+.env
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
