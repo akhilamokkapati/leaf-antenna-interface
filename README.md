@@ -14,6 +14,22 @@ app never draws geometry - it only sets parameters and re-runs the macro.
 
 ---
 
+## Quick start (teammates & professor)
+
+**You need:** [Python 3.10+](https://python.org) (tick *"Add Python to PATH"* when installing). For live results you also need **CST Studio Suite 2025** installed.
+
+1. **Get the files:** on the GitHub page, click green **Code -> Download ZIP**, then unzip. (Or `git clone` if you use git.)
+2. **Double-click a launcher** (first run auto-installs everything, ~1 min):
+   - **`run_cst.bat`** -> LIVE CST mode. Change parameters, press **Run**, and CST solves on *your* machine (~2 min/run) with real S1,1.
+   - **`run_demo.bat`** -> instant demo mode, no CST needed (great for a quick look).
+3. A browser tab opens at `http://localhost:8501`. Close the console window to stop.
+
+If your CST is installed somewhere other than the default
+`C:\Program Files (x86)\CST Studio Suite 2025\...`, set `CST_PY_PATH` (see the
+"live CST mode" section below) or edit the constant at the top of `cst_link.py`.
+
+---
+
 ## Features
 
 - **Sliders** for all six macro parameters (`num_fin_pairs` steps by 1).
