@@ -1,0 +1,14 @@
+# Render.com blueprint - deploys the app in DEMO mode as a free public web link.
+# (Live CST mode can't run in the cloud; the hosted version uses the demo model.)
+services:
+  - type: web
+    name: leaf-antenna-interface
+    runtime: python
+    plan: free
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python server.py"
+    envVars:
+      - key: DEMO_MODE
+        value: "true"
+      - key: PYTHON_VERSION
+        value: "3.12.4"

@@ -122,7 +122,7 @@ def optimize(
     # a local optimum. We therefore MULTI-START from a few design-space corners
     # plus the user's current design, all sharing one cache and budget. The final
     # answer is the best point in the cache, so no eval is ever wasted. (For the
-    # tiny-budget live/2-param case we keep a single start — multi-start would
+    # tiny-budget live/2-param case we keep a single start - multi-start would
     # just fragment the budget.)
     passes = 3
     per_pass = (joint_cost if do_joint else 0) + sum(len(axes[k]) for k in coord_keys)

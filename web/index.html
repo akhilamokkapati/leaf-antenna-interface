@@ -161,7 +161,7 @@
       <button class="btn ghost" id="resetBtn">↺ Reset to defaults</button>
     </div>
     <h3>Target spec</h3>
-    <div class="tgt">Resonance <b>2.45 GHz</b> · S₁₁ ≤ −10 dB across <b>2.400–2.4835 GHz</b> (WiFi band).</div>
+    <div class="tgt">Resonance <b>2.45 GHz</b> · S₁₁ ≤ −10 dB across <b>2.400-2.4835 GHz</b> (WiFi band).</div>
   </aside>
 
   <!-- MAIN -->
@@ -178,9 +178,9 @@
       <!-- LEFT: results -->
       <div>
         <div class="metrics">
-          <div class="metric"><div class="k">Resonant freq</div><div class="v" id="mFreq">—</div><div class="d" id="mFreqD"></div></div>
-          <div class="metric"><div class="k">Min S₁₁</div><div class="v" id="mS11">—</div><div class="d">deepest dip</div></div>
-          <div class="metric"><div class="k">Max gain</div><div class="v" id="mGain">—</div><div class="d">boresight</div></div>
+          <div class="metric"><div class="k">Resonant freq</div><div class="v" id="mFreq">-</div><div class="d" id="mFreqD"></div></div>
+          <div class="metric"><div class="k">Min S₁₁</div><div class="v" id="mS11">-</div><div class="d">deepest dip</div></div>
+          <div class="metric"><div class="k">Max gain</div><div class="v" id="mGain">-</div><div class="d">boresight</div></div>
         </div>
         <div id="coverWrap" style="margin-bottom:16px"></div>
         <div class="card">
@@ -201,7 +201,7 @@
         <div class="card geo">
           <div class="ch"><h2>Geometry preview</h2></div>
           <img id="geo" alt="leaf preview" />
-          <div class="cap">Illustrative only — CST's macro owns the real geometry.</div>
+          <div class="cap">Illustrative only - CST's macro owns the real geometry.</div>
         </div>
         <div class="card chat">
           <div class="ch"><h2>Design assistant</h2></div>
@@ -229,9 +229,9 @@
 
     <!-- VBA -->
     <details id="vbaBox">
-      <summary>CST macro — pasteable VBA</summary>
+      <summary>CST macro - pasteable VBA</summary>
       <div class="hint" style="margin-bottom:10px">Paste into CST: Home ▸ Macros ▸ Edit/Debug ▸ new macro ▸ Run. <code>use_dxf_defaults</code> is forced to 0 so your values aren't wiped.</div>
-      <pre id="vba">—</pre>
+      <pre id="vba">-</pre>
       <button class="btn ghost small" id="copyVba" style="margin-bottom:14px">Copy VBA</button>
     </details>
 
@@ -241,7 +241,7 @@
         <h2>Run history</h2>
         <button class="btn ghost small" id="csvBtn">⬇ Download CSV</button>
       </div>
-      <div id="histWrap"><div class="hint">No runs yet — press Run Simulation.</div></div>
+      <div id="histWrap"><div class="hint">No runs yet - press Run Simulation.</div></div>
     </div>
   </main>
 </div>
@@ -268,10 +268,10 @@ async function api(path, body){
     $('#optBudget').value = 8;
     const w=document.createElement('div'); w.className='hint';
     w.style.color='var(--no-ink)';
-    w.textContent='Live CST mode: each eval is a full ~2-min solve. Keep the budget small (8–12). "Search all 6" is much slower.';
+    w.textContent='Live CST mode: each eval is a full ~2-min solve. Keep the budget small (8-12). "Search all 6" is much slower.';
     $('#optNote').parentElement.insertBefore(w, $('#optNote'));
   }
-  addMsg('assistant', "Hi! Tell me what to change — e.g. “add 2 fins”, “set leaf length to 80”, or “make it resonate lower”.");
+  addMsg('assistant', "Hi! Tell me what to change - e.g. “add 2 fins”, “set leaf length to 80”, or “make it resonate lower”.");
   refreshGeometry(); refreshVba();
 })();
 
@@ -324,9 +324,9 @@ function renderResult(r){
   const de=$('#mFreqD'); de.textContent=(dMHz>=0?'+':'')+dMHz.toFixed(0)+' MHz vs 2.45';
   de.style.color = Math.abs(dMHz)<=20 ? 'var(--ok-ink)' : 'var(--muted)';
   $('#mS11').textContent = a.min_s11.toFixed(1)+' dB';
-  $('#mGain').textContent = r.gain==null? '—' : r.gain.toFixed(2)+' dBi';
+  $('#mGain').textContent = r.gain==null? '-' : r.gain.toFixed(2)+' dBi';
   $('#coverWrap').innerHTML = a.covers_wifi_band
-    ? '<span class="badge ok">✓ Covers WiFi band (2.400–2.4835 GHz ≤ −10 dB)</span>'
+    ? '<span class="badge ok">✓ Covers WiFi band (2.400-2.4835 GHz ≤ −10 dB)</span>'
     : '<span class="badge no">✗ Does not cover full WiFi band</span>';
   drawChart();
 }
@@ -420,7 +420,7 @@ async function optimize(){
     const perEval=120; // seconds per real solve (approx)
     const mins=Math.round(includeAll? budget*perEval/60 : Math.min(budget,budget)*perEval/60);
     if(!confirm(`Live CST optimize: up to ${budget} solves × ~2 min ≈ ${mins} min of real solving`+
-                (includeAll?` (all 6 params — slowest).`:`.`)+`\n\nProceed?`)) return;
+                (includeAll?` (all 6 params - slowest).`:`.`)+`\n\nProceed?`)) return;
   }
   const btn=$('#optBtn'); btn.disabled=true; $('#optSpin').innerHTML='<span class="spin dark"></span> searching…';
   const r=await api('/api/optimize',{params, include_all:includeAll, budget:budget});

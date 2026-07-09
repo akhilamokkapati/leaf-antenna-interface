@@ -39,7 +39,7 @@ DEMO_MODE = _env_flag("DEMO_MODE", True)
 _HERE = os.path.dirname(os.path.abspath(__file__))
 
 # Working .cst project the app drives. It is created fresh from the macro on the
-# first live run (a dedicated sandbox — your other .cst files are never touched).
+# first live run (a dedicated sandbox - your other .cst files are never touched).
 PROJECT_PATH = os.environ.get("PROJECT_PATH", os.path.join(_HERE, "leaf_live.cst"))
 
 # The parametric VBA macro (owns all geometry). Executed via `RunScript`.

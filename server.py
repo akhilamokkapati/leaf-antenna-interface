@@ -179,19 +179,28 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main():
+    # Cloud hosts (Render, Railway, etc.) set $PORT and need us to bind 0.0.0.0.
+    on_cloud = "PORT" in os.environ
+    default_port = int(os.environ.get("PORT", 8501))
+    default_host = os.environ.get("HOST", "0.0.0.0" if on_cloud else "127.0.0.1")
+
     ap = argparse.ArgumentParser(description="Leaf Antenna Interface (local web server)")
-    ap.add_argument("--port", type=int, default=8501)
-    ap.add_argument("--host", default="127.0.0.1")
+    ap.add_argument("--port", type=int, default=default_port)
+    ap.add_argument("--host", default=default_host)
     ap.add_argument("--no-browser", action="store_true")
     args = ap.parse_args()
 
     httpd = ThreadingHTTPServer((args.host, args.port), Handler)
     url = f"http://localhost:{args.port}"
     mode = "DEMO" if cst_link.DEMO_MODE else "LIVE CST"
-    print(f"Leaf Antenna Interface [{mode}] -> {url}")
+    print(f"Leaf Antenna Interface [{mode}] -> {args.host}:{args.port}")
     print("Press Ctrl+C to stop.")
-    if not args.no_browser:
-        threading.Timer(0.6, lambda: webbrowser.open(url)).start()
+    # Only pop a browser on a local machine, never on a headless cloud host.
+    if not args.no_browser and not on_cloud:
+        try:
+            threading.Timer(0.6, lambda: webbrowser.open(url)).start()
+        except Exception:
+            pass
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
