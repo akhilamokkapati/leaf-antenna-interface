@@ -14,19 +14,37 @@ app never draws geometry - it only sets parameters and re-runs the macro.
 
 ---
 
-## Quick start (teammates & professor)
+## Two ways to use this
 
-**You need:** [Python 3.10+](https://python.org) (tick *"Add Python to PATH"* when installing). For live results you also need **CST Studio Suite 2025** installed.
+| | What you get | What you need |
+|---|---|---|
+| **A. Real LIVE CST** (run locally) | Change parameters -> **CST solves on your PC** -> real S1,1 | Python + CST 2025 on your machine |
+| **B. Instant demo** ([live link](https://leaf-antenna-interface.onrender.com)) | Full interface with a synthetic model, nothing to install | just a browser |
 
-1. **Get the files:** on the GitHub page, click green **Code -> Download ZIP**, then unzip. (Or `git clone` if you use git.)
-2. **Double-click a launcher** (first run auto-installs everything, ~1 min):
-   - **`run_cst.bat`** -> LIVE CST mode. Change parameters, press **Run**, and CST solves on *your* machine (~2 min/run) with real S1,1.
-   - **`run_demo.bat`** -> instant demo mode, no CST needed (great for a quick look).
-3. A browser tab opens at `http://localhost:8501`. Close the console window to stop.
+> The demo link can **never** show CST results - a cloud server has no CST on it.
+> For **real CST**, you must run it on a computer that has CST (Option A below).
 
-If your CST is installed somewhere other than the default
-`C:\Program Files (x86)\CST Studio Suite 2025\...`, set `CST_PY_PATH` (see the
-"live CST mode" section below) or edit the constant at the top of `cst_link.py`.
+---
+
+## A) Run with REAL LIVE CST  (this is the real thing)
+
+**On any Windows PC that has CST Studio Suite 2025 installed:**
+
+1. **Install [Python 3.10+](https://python.org)** if you don't have it - during install, tick **"Add Python to PATH"**.
+2. **Download this project:** on the GitHub page, click the green **Code** button -> **Download ZIP**, then **unzip** it. (Or `git clone` if you know git.)
+3. **Double-click `run_cst.bat`.** The first run auto-installs everything (~1 min); after that it's quick.
+4. A browser tab opens at `http://localhost:8501`. **Move a slider (or use the chat), press "Run Simulation"**, and CST solves the real antenna on your machine (~2 min) and plots the real S1,1.
+5. To stop: close the black console window.
+
+*If CST isn't at the default path* `C:\Program Files (x86)\CST Studio Suite 2025\...`,
+set `CST_PY_PATH` before launching, or edit the constant at the top of
+[`cst_link.py`](cst_link.py).
+
+## B) Instant demo (no install, no CST)
+
+Just open **https://leaf-antenna-interface.onrender.com** in a browser. Or run
+`run_demo.bat` locally. This uses a synthetic physics model (clearly labelled) so
+you can see the interface without CST - do **not** quote its numbers as results.
 
 ---
 

@@ -261,9 +261,20 @@ async function api(path, body){
   $('#banner').textContent = CFG.banner;
   params = {...CFG.defaults};
   buildSliders();
-  // In live CST mode each optimizer eval is a real ~2-min solve, so default to
-  // the 2 most influential params + a tiny budget, and warn about wall-clock time.
-  if(!CFG.demo_mode){
+  if(CFG.demo_mode){
+    // On the hosted demo, make it obvious how to get REAL CST results.
+    const dn=document.createElement('div');
+    dn.style.cssText='margin:14px 0 0;padding:11px 15px;border-radius:12px;background:var(--accent-soft);'+
+      'color:var(--accent-ink);font-size:12.5px;border:1px solid var(--line);line-height:1.5';
+    dn.innerHTML='This is the <b>demo</b> (synthetic model - a cloud server has no CST). '+
+      'For <b>real live CST</b> results, download the project and double-click <code>run_cst.bat</code> '+
+      'on a PC with CST 2025 installed &nbsp;-&nbsp; '+
+      '<a href="https://github.com/akhilamokkapati/leaf-antenna-interface" target="_blank" '+
+      'style="color:var(--accent-ink);font-weight:700">github.com/akhilamokkapati/leaf-antenna-interface</a>';
+    document.querySelector('.head').insertAdjacentElement('afterend', dn);
+  } else {
+    // In live CST mode each optimizer eval is a real ~2-min solve, so default to
+    // the 2 most influential params + a tiny budget, and warn about wall-clock time.
     $('#optAll').checked = false;
     $('#optBudget').value = 8;
     const w=document.createElement('div'); w.className='hint';
