@@ -327,13 +327,47 @@ def _cst_session():
     return de, prj, m
 
 
+def _session_dead(exc) -> bool:
+    """Heuristic: did we lose the live connection to CST (it crashed/closed)?"""
+    s = str(exc).lower()
+    return any(k in s for k in (
+        "destination address", "modelerinstance", "not connected",
+        "connection", "broken pipe", "reset by peer", "no project open",
+        "designenvironment", "actively", "unreachable",
+    ))
+
+
+def _reset_session():
+    """Drop references to a dead CST so the next run creates a fresh instance."""
+    try:
+        if _CST.get("de") is not None:
+            _CST["de"].close()  # best effort; ignored if already gone
+    except Exception:
+        pass
+    _CST.update(de=None, prj=None, m3d=None)
+
+
 def _run_cst(params: dict) -> tuple[np.ndarray, np.ndarray, float | None]:
     """Drive real CST: set params -> rebuild geometry -> FD solve -> read S1,1.
 
-    Serialized with a lock (CST isn't thread-safe). Any failure raises
-    RuntimeError with a clean, UI-friendly message.
+    Serialized with a lock (CST isn't thread-safe). If CST crashes mid-run, the
+    live connection dies; we detect that, drop the dead session, and retry once
+    with a freshly launched CST so a crash isn't a dead end for the whole app.
     """
     with _CST_LOCK:
+        for attempt in (1, 2):
+            try:
+                return _cst_solve(params)
+            except RuntimeError as exc:
+                if attempt == 1 and _session_dead(exc):
+                    _reset_session()  # CST likely crashed -> relaunch on retry
+                    continue
+                raise
+
+
+def _cst_solve(params: dict) -> tuple[np.ndarray, np.ndarray, float | None]:
+    """One full set-params -> rebuild -> solve -> read pass (assumes/creates a session)."""
+    if True:
         de, prj, m = _cst_session()   # ensures CST_PY_PATH is on sys.path
         import cst.results  # type: ignore  (importable now)
 
