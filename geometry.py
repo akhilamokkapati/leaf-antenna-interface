@@ -8,16 +8,22 @@ recognizable leaf whose vein count and proportions track the sliders.
 
 from __future__ import annotations
 
+import numpy as np
 import matplotlib
-matplotlib.use("Agg")  # headless backend; Streamlit renders the Figure object
+matplotlib.use("Agg")  # headless backend; the server renders the Figure object
 import matplotlib.pyplot as plt
-from matplotlib.patches import Ellipse
 
-ACCENT = "#0f766e"  # teal, matches the app
+ACCENT = "#0f766e"   # teal, matches the app
+GROUND = "#334155"   # slate for the ground plane / feed
 
 
 def draw_leaf(params: dict):
-    """Return a matplotlib Figure sketching the leaf for the given params."""
+    """Return a matplotlib Figure sketching the REAL leaf antenna topology.
+
+    Matches the CST macro's geometry, not a generic leaf: two rim splines that
+    meet near the base (bottom) but stay OPEN at the tip (top), a straight
+    center stem running down to the ground plane, and horizontal cross-fins.
+    """
     fins = int(params["num_fin_pairs"])
     leaf_length = float(params["leaf_length"])
     rim_width = float(params["rim_width"])
@@ -25,63 +31,52 @@ def draw_leaf(params: dict):
     fin_width = float(params["fin_width"])
     ground_gap = float(params["leaf_ground_gap"])
 
-    # Normalize length to a fixed drawing height so the sketch stays framed;
-    # width follows a leaf-like aspect ratio.
-    height = 10.0
-    half_w = 3.2  # half-width of the leaf body
+    H = 10.0          # leaf body height (base at y=0 -> tip at y=H)
+    W = 3.0           # max half-width in the middle
+    TOP_GAP = 0.5     # half-gap where the two rim tips DON'T meet (open top)
+    POWER = 0.72      # rim arch shape (macro rim_curve_bias)
 
     fig, ax = plt.subplots(figsize=(3.6, 5.2))
     ax.set_aspect("equal")
     ax.axis("off")
 
-    # Leaf tip at top (y = +height/2), stem base at bottom (y = -height/2).
-    y_top = height / 2.0
-    y_base = -height / 2.0
+    # --- rim half-width vs height: 0 at the base (closed), TOP_GAP at the tip ---
+    def hw(t):
+        base_y = TOP_GAP * t                      # 0 at base -> TOP_GAP at tip
+        return base_y + (W - base_y) * np.sin(np.pi * t) ** POWER
 
-    # --- outer rim (leaf outline as an ellipse) ---
-    # rim_width modulates the outline thickness of the drawn rim.
-    rim_lw = 1.5 + (rim_width - 2.0) / 4.0 * 3.0  # 1.5..4.5 pts across 2..6 mm
-    outline = Ellipse(
-        (0, 0), width=2 * half_w, height=height,
-        fill=False, edgecolor=ACCENT, linewidth=rim_lw,
-    )
-    ax.add_patch(outline)
+    t = np.linspace(0.0, 1.0, 160)
+    y = t * H
+    x = hw(t)
+    rim_lw = 1.8 + (rim_width - 2.0) / 4.0 * 2.6   # thicker line with rim_width
 
-    # --- central stem / midrib ---
-    stem_lw = 1.0 + (stem_width - 2.0) / 4.0 * 3.5  # thicker with stem_width
-    ax.plot([0, 0], [y_base, y_top], color=ACCENT, linewidth=stem_lw, solid_capstyle="round")
+    # two open rim traces (left + right); they meet at the base, gap at the top
+    ax.plot(x, y, color=ACCENT, lw=rim_lw, solid_capstyle="round")
+    ax.plot(-x, y, color=ACCENT, lw=rim_lw, solid_capstyle="round")
 
-    # --- mirrored vein pairs ---
-    # Distribute veins along the midrib between base and tip; each vein angles
-    # outward and upward, tapering (shorter) toward the tip, staying inside rim.
-    fin_lw = 0.8 + (fin_width - 0.8) / 2.2 * 2.6  # thicker with fin_width
-    margin = 0.12 * height
-    ys = _spread(y_base + margin, y_top - margin, fins)
-    for y in ys:
-        # Half-width of the ellipse at this height (keep veins inside the rim).
-        frac = 1.0 - (y / (height / 2.0)) ** 2
-        frac = max(frac, 0.0)
-        rim_x = half_w * (frac ** 0.5)
-        vein_len = 0.82 * rim_x  # leave a little gap to the rim
-        dx = vein_len
-        dy = 0.28 * vein_len  # veins angle up toward the tip
-        for sign in (-1, 1):
-            ax.plot([0, sign * dx], [y, y + dy],
-                    color=ACCENT, linewidth=fin_lw, alpha=0.9, solid_capstyle="round")
+    # --- ground plane + feed drop below the base ---
+    gnd_y = -(1.4 + (ground_gap - 2.0) / 10.0 * 1.6)
+    gnd_half = W * 0.85
+    ax.plot([-gnd_half, gnd_half], [gnd_y, gnd_y], color=GROUND, lw=3.4, solid_capstyle="round")
 
-    # --- ground bar at the stem base ---
-    # Its distance below the leaf grows with leaf_ground_gap.
-    gnd_y = y_base - (0.15 + (ground_gap - 2.0) / 10.0 * 0.9)
-    gnd_half = half_w * 0.7
-    ax.plot([-gnd_half, gnd_half], [gnd_y, gnd_y],
-            color="#334155", linewidth=3.0, solid_capstyle="round")
-    ax.plot([0, 0], [y_base, gnd_y], color="#334155", linewidth=1.2)  # feed drop
+    # --- straight center stem: from just above the open tip down to the ground ---
+    stem_lw = 1.4 + (stem_width - 2.0) / 4.0 * 3.2
+    ax.plot([0, 0], [gnd_y, H * 1.0], color=ACCENT, lw=stem_lw, solid_capstyle="round")
+    # small feed marker at the port (base/ground junction)
+    ax.plot(0, gnd_y, marker="o", ms=5, color="#b91c1c", zorder=5)
 
-    # Frame with a little padding.
-    ax.set_xlim(-half_w - 1.2, half_w + 1.2)
-    ax.set_ylim(gnd_y - 0.8, y_top + 0.8)
+    # --- horizontal cross-fins along the stem (perpendicular, like the macro) ---
+    fin_lw = 1.0 + (fin_width - 0.8) / 2.2 * 2.4
+    ts = _spread(0.16, 0.84, fins)
+    for ti in ts:
+        yi = ti * H
+        span = 0.82 * hw(ti)                       # stay inside the rim
+        ax.plot([-span, span], [yi, yi], color=ACCENT, lw=fin_lw,
+                alpha=0.95, solid_capstyle="round")
 
-    ax.set_title(f"{fins} fin pairs - {leaf_length:g} mm", fontsize=9, color="#334155")
+    ax.set_xlim(-W - 1.1, W + 1.1)
+    ax.set_ylim(gnd_y - 0.6, H + 0.7)
+    ax.set_title(f"{fins} fins - {leaf_length:g} mm", fontsize=9, color=GROUND)
     fig.tight_layout(pad=0.3)
     return fig
 
