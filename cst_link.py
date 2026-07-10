@@ -412,11 +412,12 @@ def _cst_solve(params: dict) -> tuple[np.ndarray, np.ndarray, float | None]:
             )
 
         # Total efficiency (0..1) reported in the gain slot (real gain would need
-        # the heavy field monitors we drop). Tolerate absence -> None.
+        # farfield post-processing / the heavy field monitors we drop). CST returns
+        # efficiency as COMPLEX values, so read as complex then take the magnitude.
         gain = None
         try:
             eff = d3.get_result_item(EFFICIENCY_RESULT_PATH)
-            vals = np.abs(np.asarray(eff.get_ydata(), dtype=float))
+            vals = np.abs(np.asarray(eff.get_ydata(), dtype=complex))
             if vals.size:
                 gain = float(np.max(vals))  # peak total efficiency (0..1)
         except Exception:
