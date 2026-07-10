@@ -3,6 +3,11 @@
 __pycache__/
 *.pyc
 
+# PyInstaller build artifacts (the .exe is shipped via GitHub Releases, not git)
+build/
+dist/
+*.spec
+
 # CST working project + solver results (generated fresh by the app/macro)
 leaf_live.cst
 leaf_live/

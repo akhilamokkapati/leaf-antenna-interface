@@ -18,6 +18,7 @@ import base64
 import io
 import json
 import os
+import sys
 import threading
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -36,7 +37,11 @@ import chatbot
 import optimizer
 import geometry
 
-HERE = os.path.dirname(os.path.abspath(__file__))
+# Resolve the web/ folder whether run from source or from a PyInstaller .exe.
+if getattr(sys, "frozen", False):
+    HERE = sys._MEIPASS
+else:
+    HERE = os.path.dirname(os.path.abspath(__file__))
 WEB_DIR = os.path.join(HERE, "web")
 
 

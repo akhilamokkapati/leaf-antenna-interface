@@ -36,14 +36,23 @@ def _env_flag(name: str, default: bool) -> bool:
 
 DEMO_MODE = _env_flag("DEMO_MODE", True)
 
-_HERE = os.path.dirname(os.path.abspath(__file__))
+# Works both from source and when packaged into a PyInstaller .exe.
+#   _RES_DIR: read-only bundled resources (web/, the .bas macro)
+#   _WORK_DIR: a writable folder for the CST working project (next to the .exe)
+if getattr(sys, "frozen", False):
+    _RES_DIR = sys._MEIPASS                       # PyInstaller unpack dir
+    _WORK_DIR = os.path.dirname(sys.executable)   # folder the .exe sits in
+else:
+    _RES_DIR = os.path.dirname(os.path.abspath(__file__))
+    _WORK_DIR = _RES_DIR
+_HERE = _RES_DIR  # backward-compat alias
 
 # Working .cst project the app drives. It is created fresh from the macro on the
 # first live run (a dedicated sandbox - your other .cst files are never touched).
-PROJECT_PATH = os.environ.get("PROJECT_PATH", os.path.join(_HERE, "leaf_live.cst"))
+PROJECT_PATH = os.environ.get("PROJECT_PATH", os.path.join(_WORK_DIR, "leaf_live.cst"))
 
 # The parametric VBA macro (owns all geometry). Executed via `RunScript`.
-BAS_PATH = os.environ.get("BAS_PATH", os.path.join(_HERE, "leaf_antenna_parametric_cst2025.bas"))
+BAS_PATH = os.environ.get("BAS_PATH", os.path.join(_RES_DIR, "leaf_antenna_parametric_cst2025.bas"))
 
 # --- Locate CST's Python libraries (works on any teammate's machine) ---------
 # Priority: (1) CST_PY_PATH env var, (2) a cst_py_path.txt file dropped next to
@@ -54,8 +63,8 @@ def _resolve_cst_py_path() -> str:
     env = os.environ.get("CST_PY_PATH")
     if env and os.path.isdir(env):
         return env
-    # 2) a plain-text override file in the project folder (easy for non-coders)
-    override = os.path.join(_HERE, "cst_py_path.txt")
+    # 2) a plain-text override file next to the app (easy for non-coders)
+    override = os.path.join(_WORK_DIR, "cst_py_path.txt")
     if os.path.isfile(override):
         try:
             p = open(override, encoding="utf-8").read().strip().strip('"')
