@@ -36,9 +36,11 @@ app never draws geometry - it only sets parameters and re-runs the macro.
 4. A browser tab opens at `http://localhost:8501`. **Move a slider (or use the chat), press "Run Simulation"**, and CST solves the real antenna on your machine (~2 min) and plots the real S1,1.
 5. To stop: close the black console window.
 
-*If CST isn't at the default path* `C:\Program Files (x86)\CST Studio Suite 2025\...`,
-set `CST_PY_PATH` before launching, or edit the constant at the top of
-[`cst_link.py`](cst_link.py).
+*The app auto-detects your CST install* (any version/year, in Program Files or
+under Dassault Systemes). If it still can't find it, create a text file named
+**`cst_py_path.txt`** next to `run_cst.bat` containing the full path to your
+`...\AMD64\python_cst_libraries` folder, then run again. (Advanced: set the
+`CST_PY_PATH` environment variable instead.)
 
 ## B) Instant demo (no install, no CST)
 

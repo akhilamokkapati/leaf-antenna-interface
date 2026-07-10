@@ -45,11 +45,45 @@ PROJECT_PATH = os.environ.get("PROJECT_PATH", os.path.join(_HERE, "leaf_live.cst
 # The parametric VBA macro (owns all geometry). Executed via `RunScript`.
 BAS_PATH = os.environ.get("BAS_PATH", os.path.join(_HERE, "leaf_antenna_parametric_cst2025.bas"))
 
-# CST 2025 Python libraries (adjust if CST is installed elsewhere).
-CST_PY_PATH = os.environ.get(
-    "CST_PY_PATH",
-    r"C:\Program Files (x86)\CST Studio Suite 2025\AMD64\python_cst_libraries",
-)
+# --- Locate CST's Python libraries (works on any teammate's machine) ---------
+# Priority: (1) CST_PY_PATH env var, (2) a cst_py_path.txt file dropped next to
+# this project, (3) auto-detect across the usual install locations / versions.
+def _resolve_cst_py_path() -> str:
+    import glob
+    # 1) explicit environment variable
+    env = os.environ.get("CST_PY_PATH")
+    if env and os.path.isdir(env):
+        return env
+    # 2) a plain-text override file in the project folder (easy for non-coders)
+    override = os.path.join(_HERE, "cst_py_path.txt")
+    if os.path.isfile(override):
+        try:
+            p = open(override, encoding="utf-8").read().strip().strip('"')
+            if p and os.path.isdir(p):
+                return p
+        except Exception:
+            pass
+    # 3) auto-detect: scan common roots for any CST Studio Suite version
+    roots = [r"C:\Program Files (x86)", r"C:\Program Files",
+             r"D:\Program Files (x86)", r"D:\Program Files"]
+    patterns = [
+        r"CST Studio Suite *\AMD64\python_cst_libraries",
+        r"Dassault Systemes\*\CSTStudioSuite*\AMD64\python_cst_libraries",
+        r"Dassault Systemes\SIMULIA\*\*\AMD64\python_cst_libraries",
+    ]
+    found = []
+    for root in roots:
+        for pat in patterns:
+            found += glob.glob(os.path.join(root, pat))
+    found = [f for f in found if os.path.isdir(f)]
+    if found:
+        found.sort(reverse=True)  # newest version year first
+        return found[0]
+    # fall back to the standard 2025 path (used only for the error message)
+    return env or r"C:\Program Files (x86)\CST Studio Suite 2025\AMD64\python_cst_libraries"
+
+
+CST_PY_PATH = _resolve_cst_py_path()
 
 MACRO_NAME = "leaf_antenna_parametric_cst2025"
 
@@ -278,8 +312,11 @@ def _cst_session():
         import cst.results    # noqa: F401  (imported to validate availability)
     except Exception as exc:
         raise RuntimeError(
-            f"Could not import CST Python libraries from '{CST_PY_PATH}'. "
-            f"Set CST_PY_PATH or run in DEMO_MODE. ({exc})"
+            f"Couldn't find CST's Python libraries (looked in '{CST_PY_PATH}'). "
+            f"If your CST is installed elsewhere, create a text file named "
+            f"'cst_py_path.txt' next to run_cst.bat containing the full path to your "
+            f"...\\AMD64\\python_cst_libraries folder, then run again. "
+            f"(Or use run_demo.bat for the no-CST demo.) ({exc})"
         )
 
     try:
