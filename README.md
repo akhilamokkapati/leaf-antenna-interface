@@ -14,39 +14,46 @@ app never draws geometry - it only sets parameters and re-runs the macro.
 
 ---
 
-## Two ways to use this
+## Ways to use this
 
 | | What you get | What you need |
 |---|---|---|
-| **A. Real LIVE CST** (run locally) | Change parameters -> **CST solves on your PC** -> real S1,1 | Python + CST 2025 on your machine |
-| **B. Instant demo** ([live link](https://leaf-antenna-interface.onrender.com)) | Full interface with a synthetic model, nothing to install | just a browser |
+| **A. Download the app** ([Releases](https://github.com/akhilamokkapati/leaf-antenna-interface/releases/latest)) | one `.exe`, double-click -> **your own CST solves** -> real S1,1 | just **CST** installed (no Python) |
+| **B. Run from source** | same, from the code | Python + CST |
+| **C. Instant demo** ([live link](https://leaf-antenna-interface.onrender.com)) | Full interface with a synthetic model, nothing to install | just a browser |
 
 > The demo link can **never** show CST results - a cloud server has no CST on it.
-> For **real CST**, you must run it on a computer that has CST (Option A below).
+> Real CST results only come from a computer that has CST (options A / B).
 
 ---
 
-## A) Run with REAL LIVE CST  (this is the real thing)
+## A) Download the app (easiest - real live CST, no Python)
 
-**On any Windows PC that has CST Studio Suite 2025 installed:**
+**On any Windows PC that has CST Studio Suite installed:**
 
-1. **Install [Python 3.10+](https://python.org)** if you don't have it - during install, tick **"Add Python to PATH"**.
-2. **Download this project:** on the GitHub page, click the green **Code** button -> **Download ZIP**, then **unzip** it. (Or `git clone` if you know git.)
-3. **Double-click `run_cst.bat`.** The first run auto-installs everything (~1 min); after that it's quick.
-4. A browser tab opens at `http://localhost:8501`. **Move a slider (or use the chat), press "Run Simulation"**, and CST solves the real antenna on your machine (~2 min) and plots the real S1,1.
-5. To stop: close the black console window.
+1. Go to **[Releases](https://github.com/akhilamokkapati/leaf-antenna-interface/releases/latest)** and download **`LeafAntenna.exe`**.
+2. Put it in a normal folder (Downloads / Desktop - it writes its working file next to itself) and **double-click it**.
+   - If Windows SmartScreen says *"Windows protected your PC"*, click **More info -> Run anyway** (normal for an unsigned app).
+   - First launch takes ~15-20 s to unpack; then a browser tab opens at `http://localhost:8501`.
+3. **Move a slider (or use the chat), press "Run Simulation"** -> your own CST solves the antenna (~2 min) and plots the real S1,1.
 
-*The app auto-detects your CST install* (any version/year, in Program Files or
-under Dassault Systemes). If it still can't find it, create a text file named
-**`cst_py_path.txt`** next to `run_cst.bat` containing the full path to your
-`...\AMD64\python_cst_libraries` folder, then run again. (Advanced: set the
-`CST_PY_PATH` environment variable instead.)
+The app **auto-detects your CST install** (any version). If it can't find it, drop
+a file named **`cst_py_path.txt`** next to the `.exe` containing the full path to
+your `...\AMD64\python_cst_libraries` folder, then run again.
 
-## B) Instant demo (no install, no CST)
+> While it solves (~2 min), **do not touch CST** - don't press the red X. Just wait.
 
-Just open **https://leaf-antenna-interface.onrender.com** in a browser. Or run
-`run_demo.bat` locally. This uses a synthetic physics model (clearly labelled) so
-you can see the interface without CST - do **not** quote its numbers as results.
+## B) Run from source (Python + CST)
+
+1. Install [Python 3.10+](https://python.org) (tick **"Add Python to PATH"**).
+2. **Code -> Download ZIP**, unzip (or `git clone`).
+3. Double-click **`run_cst.bat`** (first run auto-installs deps). Same result as the .exe.
+
+## C) Instant demo (no install, no CST)
+
+Open **https://leaf-antenna-interface.onrender.com**, or run `run_demo.bat`
+locally. Synthetic model (clearly labelled) - do **not** quote its numbers as
+CST results.
 
 ---
 
