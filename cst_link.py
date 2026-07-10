@@ -18,6 +18,7 @@ reality. Flip DEMO_MODE to False on the CST machine.
 
 from __future__ import annotations
 
+import json
 import os
 import sys
 import numpy as np
@@ -299,19 +300,68 @@ def _demo_gain(params: dict) -> float:
 # ---------------------------------------------------------------------------
 # Public: run a simulation (demo or live)
 # ---------------------------------------------------------------------------
-def run_simulation(params: dict) -> tuple[np.ndarray, np.ndarray, float | None]:
-    """Return (freqs_GHz, s11_dB, gain_dBi_or_None) for the given parameters.
+# --- Precomputed real-CST cache (cst_cache.json) ---------------------------
+# A sweep of real CST solves (fin count x leaf length) baked in by
+# precompute_cst.py. When present, demo/cloud mode serves these REAL curves
+# (nearest design) instead of the synthetic model - so the public link shows
+# genuine CST data. See precompute_cst.py.
+_CACHE = None
 
-    In DEMO_MODE this is instant and synthetic. Otherwise it drives CST. Any
-    CST failure raises RuntimeError with a clean message for the UI to show.
+
+def _load_cache() -> list:
+    global _CACHE
+    if _CACHE is not None:
+        return _CACHE
+    for d in (_WORK_DIR, _RES_DIR):
+        p = os.path.join(d, "cst_cache.json")
+        if os.path.isfile(p):
+            try:
+                _CACHE = json.load(open(p, encoding="utf-8"))
+                return _CACHE
+            except Exception:
+                pass
+    _CACHE = []
+    return _CACHE
+
+
+def _nearest_cached(params: dict):
+    """Nearest real-CST curve to `params` in (num_fin_pairs, leaf_length) space."""
+    cache = _load_cache()
+    if not cache:
+        return None
+
+    def dist(c):
+        cp = c["params"]
+        return (abs(cp["num_fin_pairs"] - params["num_fin_pairs"])
+                + abs(cp["leaf_length"] - params["leaf_length"]) / 4.0)
+
+    best = min(cache, key=dist)
+    return (np.asarray(best["freqs"], dtype=float),
+            np.asarray(best["s11_db"], dtype=float),
+            best.get("gain"))
+
+
+def data_source() -> str:
+    """Which data the app is serving: 'live' CST, 'cached' real CST, or 'synthetic'."""
+    if not DEMO_MODE:
+        return "live"
+    return "cached" if _load_cache() else "synthetic"
+
+
+def run_simulation(params: dict) -> tuple[np.ndarray, np.ndarray, float | None]:
+    """Return (freqs_GHz, s11_dB, gain_or_None) for the given parameters.
+
+    - Live CST if enabled; else nearest precomputed REAL CST curve if a cache
+      exists; else the synthetic demo model. Any CST failure raises RuntimeError.
     """
     params = clip_all(params)
-    if DEMO_MODE:
-        freqs = np.linspace(2.2, 2.7, 501)
-        s11 = _demo_s11_curve(params, freqs)
-        gain = _demo_gain(params)
-        return freqs, s11, gain
-    return _run_cst(params)
+    if not DEMO_MODE:
+        return _run_cst(params)
+    cached = _nearest_cached(params)
+    if cached is not None:
+        return cached
+    freqs = np.linspace(2.2, 2.7, 501)
+    return freqs, _demo_s11_curve(params, freqs), _demo_gain(params)
 
 
 # --- persistent CST session (created once, reused across runs) -------------
@@ -563,6 +613,10 @@ def analyse(freqs: np.ndarray, s11_db: np.ndarray) -> dict:
 
 def status_banner() -> str:
     """Short human-readable mode string for the UI banner."""
-    if DEMO_MODE:
-        return "DEMO MODE - synthetic data (no CST). Trends are physically faithful."
-    return f"LIVE CST MODE - project: {PROJECT_PATH}"
+    src = data_source()
+    if src == "live":
+        return f"LIVE CST MODE - project: {PROJECT_PATH}"
+    if src == "cached":
+        return ("REAL CST DATA - precomputed sweep (fin count x leaf length; "
+                "other parameters at default)")
+    return "DEMO MODE - synthetic data (no CST). Trends are physically faithful."

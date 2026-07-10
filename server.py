@@ -79,6 +79,7 @@ def _config() -> dict:
                    "unit": unit, "effect": eff, "is_int": k == "num_fin_pairs"}
     return {
         "demo_mode": cst_link.DEMO_MODE,
+        "data_source": cst_link.data_source(),   # "live" | "cached" | "synthetic"
         "banner": status_banner(),
         "spec": spec,
         "order": PARAM_ORDER,

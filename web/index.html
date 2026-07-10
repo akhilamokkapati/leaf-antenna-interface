@@ -261,29 +261,39 @@ async function api(path, body){
   $('#banner').textContent = CFG.banner;
   params = {...CFG.defaults};
   buildSliders();
-  if(CFG.demo_mode){
-    // On the hosted demo, make it obvious how to get REAL CST results.
+  const src = CFG.data_source || (CFG.demo_mode ? 'synthetic' : 'live');
+  function headNote(html){
     const dn=document.createElement('div');
     dn.style.cssText='margin:14px 0 0;padding:11px 15px;border-radius:12px;background:var(--accent-soft);'+
       'color:var(--accent-ink);font-size:12.5px;border:1px solid var(--line);line-height:1.5';
-    dn.innerHTML='This is the <b>demo</b> (synthetic model - a cloud server has no CST). '+
-      'For <b>real live CST</b> results, download the project and double-click <code>run_cst.bat</code> '+
-      'on a PC with CST 2025 installed &nbsp;-&nbsp; '+
-      '<a href="https://github.com/akhilamokkapati/leaf-antenna-interface" target="_blank" '+
-      'style="color:var(--accent-ink);font-weight:700">github.com/akhilamokkapati/leaf-antenna-interface</a>';
+    dn.innerHTML=html;
     document.querySelector('.head').insertAdjacentElement('afterend', dn);
-  } else {
-    // Live CST reports total efficiency (real gain needs farfield post-processing).
+  }
+  // Any CST-backed data (live or cached) reports total efficiency, not gain(dBi).
+  if(src !== 'synthetic'){
     $('#mGainK').textContent = 'Tot. efficiency';
     $('#mGainD').textContent = 'peak, incl. match';
-    // In live CST mode each optimizer eval is a real ~2-min solve, so default to
-    // the 2 most influential params + a tiny budget, and warn about wall-clock time.
+  }
+  if(src === 'live'){
+    // In live CST mode each optimizer eval is a real ~2-min solve.
     $('#optAll').checked = false;
     $('#optBudget').value = 8;
     const w=document.createElement('div'); w.className='hint';
     w.style.color='var(--no-ink)';
     w.textContent='Live CST mode: each eval is a full ~2-min solve. Keep the budget small (8-12). "Search all 6" is much slower.';
     $('#optNote').parentElement.insertBefore(w, $('#optNote'));
+  } else if(src === 'cached'){
+    headNote('These are <b>real CST results</b> (a precomputed sweep of <b>fin count &times; leaf length</b>; '+
+      'other sliders stay at default). Adjust <b>num_fin_pairs</b> and <b>leaf_length</b> to see genuine CST S<sub>11</sub>. '+
+      'For fully interactive live CST, run it on a PC with CST - '+
+      '<a href="https://github.com/akhilamokkapati/leaf-antenna-interface" target="_blank" '+
+      'style="color:var(--accent-ink);font-weight:700">github.com/akhilamokkapati/leaf-antenna-interface</a>');
+  } else {
+    headNote('This is the <b>demo</b> (synthetic model - a cloud server has no CST). '+
+      'For <b>real live CST</b> results, download the project and double-click <code>run_cst.bat</code> '+
+      'on a PC with CST installed &nbsp;-&nbsp; '+
+      '<a href="https://github.com/akhilamokkapati/leaf-antenna-interface" target="_blank" '+
+      'style="color:var(--accent-ink);font-weight:700">github.com/akhilamokkapati/leaf-antenna-interface</a>');
   }
   addMsg('assistant', "Hi! Tell me what to change - e.g. “add 2 fins”, “set leaf length to 80”, or “make it resonate lower”.");
   refreshGeometry(); refreshVba();
@@ -339,7 +349,7 @@ function renderResult(r){
   de.style.color = Math.abs(dMHz)<=20 ? 'var(--ok-ink)' : 'var(--muted)';
   $('#mS11').textContent = a.min_s11.toFixed(1)+' dB';
   $('#mGain').textContent = r.gain==null ? '-'
-    : (CFG.demo_mode ? r.gain.toFixed(2)+' dBi' : (r.gain*100).toFixed(1)+' %');
+    : (CFG.data_source==='synthetic' ? r.gain.toFixed(2)+' dBi' : (r.gain*100).toFixed(1)+' %');
   $('#coverWrap').innerHTML = a.covers_wifi_band
     ? '<span class="badge ok">✓ Covers WiFi band (2.400-2.4835 GHz ≤ −10 dB)</span>'
     : '<span class="badge no">✗ Does not cover full WiFi band</span>';
