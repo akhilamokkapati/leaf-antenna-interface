@@ -34,7 +34,9 @@ def _env_flag(name: str, default: bool) -> bool:
     return raw.strip().lower() in ("1", "true", "yes", "on")
 
 
-DEMO_MODE = _env_flag("DEMO_MODE", True)
+# DEMO_MODE is resolved further below, AFTER we detect the CST install, so the
+# app runs LIVE CST automatically wherever CST exists (and only falls back to the
+# demo model on machines without it).
 
 # Works both from source and when packaged into a PyInstaller .exe.
 #   _RES_DIR: read-only bundled resources (web/, the .bas macro)
@@ -93,6 +95,21 @@ def _resolve_cst_py_path() -> str:
 
 
 CST_PY_PATH = _resolve_cst_py_path()
+
+
+# Default behaviour: run LIVE CST if CST is installed on this machine, otherwise
+# fall back to the demo model. An explicit DEMO_MODE env var always wins (the
+# launchers and Render deploy set it). This is what makes the double-click .exe
+# "just work" with real CST for anyone who has CST, and still show the interface
+# (demo) for anyone who doesn't.
+def _resolve_demo_mode() -> bool:
+    raw = os.environ.get("DEMO_MODE")
+    if raw is not None:
+        return raw.strip().lower() in ("1", "true", "yes", "on")
+    return not os.path.isdir(CST_PY_PATH)
+
+
+DEMO_MODE = _resolve_demo_mode()
 
 MACRO_NAME = "leaf_antenna_parametric_cst2025"
 
