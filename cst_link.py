@@ -196,7 +196,7 @@ PARAM_SPEC = {
     "rim_width":         (2.0,  6.0,  4.2,   0.1,  "mm", "affects matching (best near 4.2)"),
     "center_stem_width": (2.0,  6.0,  4.2,   0.1,  "mm", "feed/stem width, small frequency effect"),
     "fin_width":         (0.8,  3.0,  1.4,   0.1,  "mm", "wider -> deeper match"),
-    "leaf_ground_gap":   (2.0,  12.0, 5.0,   0.5,  "mm", "larger -> detunes / shallower match"),
+    "leaf_ground_gap":   (0.1,  12.0, 5.0,   0.1,  "mm", "larger -> detunes / shallower match"),
 }
 
 PARAM_ORDER = list(PARAM_SPEC.keys())
