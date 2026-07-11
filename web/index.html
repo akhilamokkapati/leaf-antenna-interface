@@ -108,6 +108,12 @@
   .details{margin-bottom:14px; display:flex; align-items:center; gap:12px; flex-wrap:wrap}
   .dstats{display:flex; gap:18px; flex-wrap:wrap; font-size:12px; color:var(--ink2); font-variant-numeric:tabular-nums}
   .dstats b{color:var(--muted); font-weight:600; font-family:var(--label); font-size:10px; text-transform:uppercase; letter-spacing:.08em; margin-right:5px}
+  .sense{margin-top:15px; padding-top:13px; border-top:1px solid var(--line)}
+  .senserow{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:8px}
+  .slabel{font-family:var(--label); font-size:10.5px; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); font-weight:600}
+  .sval{font-variant-numeric:tabular-nums; color:#1d4ed8; font-weight:700; font-size:12px}
+  .sense input[type=range]{width:100%; background:linear-gradient(#1d4ed8,#1d4ed8) no-repeat, var(--line); background-size:var(--fill,0%) 100%}
+  .sense input[type=range]::-webkit-slider-thumb{border-color:#1d4ed8}
 
   .legend{display:flex; gap:15px; align-items:center; font-size:11px; color:var(--muted)}
   .legend span{display:inline-flex; align-items:center; gap:6px}
@@ -200,6 +206,14 @@
             </div>
           </div>
           <canvas id="chart" height="336"></canvas>
+          <div class="sense">
+            <div class="senserow">
+              <span class="slabel">Near-field sensing &mdash; water level</span>
+              <span class="sval" id="waterVal">0% (air)</span>
+            </div>
+            <input type="range" id="waterLevel" min="0" max="100" step="1" value="0">
+            <div class="hint" id="senseOut">Rising water raises the near-field permittivity, shifting resonance down (analytic model &mdash; illustrates the flood-monitor use case).</div>
+          </div>
         </div>
       </div>
 
@@ -469,6 +483,42 @@ function drawChart(){
     g.beginPath(); g.arc(mx,my,5,0,7); g.fill(); g.stroke();
     g.fillStyle=C.ink; g.font='600 11px "Segoe UI",system-ui'; g.textAlign='center';
     g.fillText(fr[im].toFixed(3)+' GHz', Math.min(Math.max(mx,x0+30),x1-30), my+22);
+
+    // --- near-field sensing overlay: same curve shifted down by rising water ---
+    const wl = +(($('#waterLevel')||{}).value || 0);
+    if(wl > 0){
+      const fac = senseShiftFactor(wl);           // <1: resonance scales down
+      const WATER='#1d4ed8';
+      const sf = fr.map(f=>f*fac);
+      g.save(); g.beginPath(); g.rect(x0,y0,x1-x0,y1-y0); g.clip();  // keep it in the plot box
+      plot(sf, s11, WATER, 2.2, 0.9);
+      let jm=0; for(let i=1;i<s11.length;i++) if(s11[i]<s11[jm]) jm=i;
+      const wx=X(sf[jm]), wy=Y(s11[jm]);
+      g.fillStyle=WATER; g.strokeStyle=C.panel; g.lineWidth=2.5;
+      g.beginPath(); g.arc(wx,wy,4.5,0,7); g.fill(); g.stroke();
+      g.restore();
+      g.fillStyle=WATER; g.font='600 10px "Segoe UI",system-ui'; g.textAlign='center';
+      g.fillText('water '+sf[jm].toFixed(3), Math.min(Math.max(wx,x0+30),x1-30), wy-10);
+    }
+  }
+}
+// Analytic near-field model: rising water raises effective permittivity, so the
+// resonance scales by 1/sqrt(eps_eff). Illustrative (coupling k is tunable).
+function senseShiftFactor(level){
+  const k = 0.0018;                       // near-field water-coupling fraction
+  const eps_eff = 1 + (80 - 1) * k * (level / 100);
+  return 1 / Math.sqrt(eps_eff);
+}
+function onWaterLevel(){
+  const lv = +$('#waterLevel').value;
+  $('#waterVal').textContent = lv===0 ? '0% (air)' : lv+'% submerged';
+  $('#waterLevel').style.setProperty('--fill', lv+'%');
+  if(lastSim){
+    const f0 = lastSim.analysis.resonant_freq, f1 = f0*senseShiftFactor(lv);
+    $('#senseOut').textContent = lv===0
+      ? 'Rising water shifts resonance down (analytic near-field model - illustrates the flood-monitor use case).'
+      : `Sensed resonance ${f1.toFixed(3)} GHz  (${((f1-f0)*1000).toFixed(0)} MHz vs dry) - blue curve. Analytic near-field model.`;
+    drawChart();
   }
 }
 window.addEventListener('resize', ()=>{ if(lastSim) drawChart(); });
@@ -539,6 +589,7 @@ $('#chatIn').addEventListener('keydown',e=>{ if(e.key==='Enter') chat(); });
 $('#optBtn').onclick=optimize;
 $('#csvBtn').onclick=downloadCsv;
 $('#copyReport').onclick=copyReportNumbers;
+$('#waterLevel').oninput=onWaterLevel;
 $('#copyVba').onclick=()=>{ navigator.clipboard.writeText($('#vba').textContent); $('#copyVba').textContent='Copied ✓'; setTimeout(()=>$('#copyVba').textContent='Copy VBA',1200); };
 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{ if(lastSim) drawChart(); });
 </script>
