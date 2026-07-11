@@ -283,11 +283,18 @@ async function api(path, body){
     w.textContent='Live CST mode: each eval is a full ~2-min solve. Keep the budget small (8-12). "Search all 6" is much slower.';
     $('#optNote').parentElement.insertBefore(w, $('#optNote'));
   } else if(src === 'cached'){
-    headNote('These are <b>real CST results</b> (a precomputed sweep of <b>fin count &times; leaf length</b>; '+
-      'other sliders stay at default). Adjust <b>num_fin_pairs</b> and <b>leaf_length</b> to see genuine CST S<sub>11</sub>. '+
-      'For fully interactive live CST, run it on a PC with CST - '+
+    headNote('These are <b>real CST results</b> from a precomputed sweep of <b>fin count &times; leaf length</b> only. '+
+      'Those two sliders are live; the greyed-out ones are fixed at default here (sweeping all six would be thousands of solves). '+
+      'For full control of every parameter with real CST, run it on a PC with CST - '+
       '<a href="https://github.com/akhilamokkapati/leaf-antenna-interface" target="_blank" '+
       'style="color:var(--accent-ink);font-weight:700">github.com/akhilamokkapati/leaf-antenna-interface</a>');
+    // disable the sliders that the sweep didn't vary, so it's clear they do nothing here
+    ['rim_width','center_stem_width','fin_width','leaf_ground_gap'].forEach(k=>{
+      const inp=$('#s_'+k); if(!inp) return;
+      inp.disabled=true;
+      const box=inp.closest('.param');
+      if(box){ box.style.opacity='0.45'; const e=box.querySelector('.eff'); if(e) e.textContent='fixed at default in this preview'; }
+    });
   } else {
     headNote('This is the <b>demo</b> (synthetic model - a cloud server has no CST). '+
       'For <b>real live CST</b> results, download the project and double-click <code>run_cst.bat</code> '+
