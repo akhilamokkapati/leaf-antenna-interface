@@ -86,11 +86,10 @@ def draw_icon():
 
     os.makedirs("assets", exist_ok=True)
     sizes = [16, 24, 32, 48, 64, 128, 256]
-    icons = [bg.resize((s, s), Image.LANCZOS) for s in sizes]
-    icons[0].save("assets/leaf_icon.ico", format="ICO",
-                  sizes=[(s, s) for s in sizes], append_images=icons[1:])
-    bg.resize((256, 256), Image.LANCZOS).save("assets/leaf_icon.png")
-    # small previews to judge legibility
+    # ICO must be saved from the LARGEST image; PIL resizes DOWN to each size.
+    master = bg.resize((256, 256), Image.LANCZOS)
+    master.save("assets/leaf_icon.ico", format="ICO", sizes=[(s, s) for s in sizes])
+    master.save("assets/leaf_icon.png")
     for s in (32, 48):
         bg.resize((s, s), Image.LANCZOS).save(f"assets/leaf_icon_{s}.png")
     print("wrote assets/leaf_icon.ico + previews")
