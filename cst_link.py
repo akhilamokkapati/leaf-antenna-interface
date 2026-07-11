@@ -441,12 +441,19 @@ def _cst_session():
 
 
 def _session_dead(exc) -> bool:
-    """Heuristic: did we lose the live connection to CST (it crashed/closed)?"""
+    """Heuristic: did we lose the live connection to CST (it crashed/closed)?
+
+    A healthy session never fails on StoreParameter / a modeler call, so any
+    "failed to call" / "trying to execute" error is treated as a dead session
+    and triggers a relaunch+retry.
+    """
     s = str(exc).lower()
     return any(k in s for k in (
         "destination address", "modelerinstance", "not connected",
         "connection", "broken pipe", "reset by peer", "no project open",
         "designenvironment", "actively", "unreachable",
+        "failed to call", "trying to execute", "failed to set parameters",
+        "storeparameter",
     ))
 
 
