@@ -94,7 +94,8 @@ def optimize(
         key = tuple(params[k] for k in PARAM_ORDER)
         if key in cache:
             return cache[key]
-        freqs, s11_db, gain = evaluate_fn(params)
+        res = evaluate_fn(params)
+        freqs, s11_db, gain = res[0], res[1], res[2]
         ana = analyse(freqs, s11_db)
         res = {
             "params": params, "analysis": ana, "score": objective(ana),

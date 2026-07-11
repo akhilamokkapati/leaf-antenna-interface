@@ -49,7 +49,7 @@ for fins in FINS:
         print(f"[{i}/{total}] solving fins={fins} leaf={leaf} ...", flush=True)
         ts = time.time()
         try:
-            f, s, g = cst_link.run_simulation(p)
+            f, s, g = cst_link.run_simulation(p)[:3]
             cache.append({
                 "params": cst_link.clip_all(p),
                 "freqs": np.asarray(f, float).round(5).tolist(),

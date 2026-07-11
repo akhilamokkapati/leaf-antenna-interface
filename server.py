@@ -50,11 +50,25 @@ WEB_DIR = os.path.join(HERE, "web")
 # ---------------------------------------------------------------------------
 def _sim_payload(params: dict) -> dict:
     """Run a simulation and package everything the UI needs as plain JSON."""
-    freqs, s11_db, gain = run_simulation(params)
+    freqs, s11_db, gain, zin = run_simulation(params)
+    freqs = np.asarray(freqs, dtype=float)
     ana = analyse(freqs, s11_db)
+
+    # Input impedance (live CST only; needs the complex S11 that zin carries).
+    def _z_at(f_ghz):
+        z = complex(np.interp(f_ghz, freqs, np.real(zin)),
+                    np.interp(f_ghz, freqs, np.imag(zin)))
+        return {"re": round(z.real, 2), "im": round(z.imag, 2)}
+
+    if zin is not None:
+        ana["zin_target"] = _z_at(cst_link.TARGET_FREQ)     # at 2.45 GHz
+        ana["zin_res"] = _z_at(ana["resonant_freq"])        # at resonance
+    else:
+        ana["zin_target"] = ana["zin_res"] = None
+
     return {
         "params": clip_all(params),
-        "freqs": np.asarray(freqs, dtype=float).round(5).tolist(),
+        "freqs": freqs.round(5).tolist(),
         "s11_db": np.asarray(s11_db, dtype=float).round(4).tolist(),
         "gain": None if gain is None else round(float(gain), 3),
         "analysis": ana,

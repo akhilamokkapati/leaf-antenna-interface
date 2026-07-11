@@ -356,12 +356,14 @@ def run_simulation(params: dict) -> tuple[np.ndarray, np.ndarray, float | None]:
     """
     params = clip_all(params)
     if not DEMO_MODE:
-        return _run_cst(params)
+        return _run_cst(params)   # (freqs, s11_db, gain, zin_complex)
+    # demo/cached paths have magnitude-only S11 -> no impedance (zin=None)
     cached = _nearest_cached(params)
     if cached is not None:
-        return cached
+        f, s, g = cached
+        return f, s, g, None
     freqs = np.linspace(2.2, 2.7, 501)
-    return freqs, _demo_s11_curve(params, freqs), _demo_gain(params)
+    return freqs, _demo_s11_curve(params, freqs), _demo_gain(params), None
 
 
 # --- persistent CST session (created once, reused across runs) -------------
@@ -543,7 +545,16 @@ def _cst_solve(params: dict) -> tuple[np.ndarray, np.ndarray, float | None]:
         except Exception:
             gain = None
 
-        return freqs, s11_db, gain
+        # Input impedance from the complex reflection coefficient:
+        # Zin(f) = Z0 * (1 + S11) / (1 - S11), Z0 = 50 ohm (the discrete port).
+        try:
+            denom = 1.0 - s11_complex
+            denom[np.abs(denom) < 1e-12] = 1e-12
+            zin = 50.0 * (1.0 + s11_complex) / denom
+        except Exception:
+            zin = None
+
+        return freqs, s11_db, gain, zin
 
 
 # ---------------------------------------------------------------------------
@@ -610,10 +621,22 @@ def analyse(freqs: np.ndarray, s11_db: np.ndarray) -> dict:
     mask = (freqs >= WIFI_BAND[0]) & (freqs <= WIFI_BAND[1])
     covers = bool(mask.any() and np.all(s11_db[mask] <= -10.0))
 
+    # -10 dB bandwidth (MHz) around the resonance
+    bandwidth_mhz = None
+    if band_low is not None:
+        bandwidth_mhz = float((band_high - band_low) * 1000.0)
+
+    # S11 exactly at the 2.45 GHz target (linear interpolation)
+    s11_at_target = float(np.interp(TARGET_FREQ, freqs, s11_db))
+
     return {
         "resonant_freq": resonant_freq,
         "min_s11": min_s11,
+        "s11_at_target": s11_at_target,            # dB at 2.45 GHz
         "band_edges": None if band_low is None else (band_low, band_high),
+        "cutoff_lo": band_low,                     # -10 dB lower cutoff (GHz)
+        "cutoff_hi": band_high,                    # -10 dB upper cutoff (GHz)
+        "bandwidth_mhz": bandwidth_mhz,            # -10 dB bandwidth (MHz)
         "covers_wifi_band": covers,
     }
 

@@ -105,6 +105,9 @@
   .metric .d{font-size:11.5px; margin-top:4px; color:var(--muted); font-variant-numeric:tabular-nums; font-weight:600}
   .badge{display:inline-flex; align-items:center; gap:8px; padding:9px 15px; border-radius:24px; font-weight:650; font-size:12.5px; box-shadow:var(--shadow-sm)}
   .badge.ok{background:var(--ok-bg); color:var(--ok-ink)} .badge.no{background:var(--no-bg); color:var(--no-ink)}
+  .details{margin-bottom:14px; display:flex; align-items:center; gap:12px; flex-wrap:wrap}
+  .dstats{display:flex; gap:18px; flex-wrap:wrap; font-size:12px; color:var(--ink2); font-variant-numeric:tabular-nums}
+  .dstats b{color:var(--muted); font-weight:600; font-family:var(--label); font-size:10px; text-transform:uppercase; letter-spacing:.08em; margin-right:5px}
 
   .legend{display:flex; gap:15px; align-items:center; font-size:11px; color:var(--muted)}
   .legend span{display:inline-flex; align-items:center; gap:6px}
@@ -182,7 +185,11 @@
           <div class="metric"><div class="k">Min S₁₁</div><div class="v" id="mS11">-</div><div class="d">deepest dip</div></div>
           <div class="metric"><div class="k" id="mGainK">Max gain</div><div class="v" id="mGain">-</div><div class="d" id="mGainD">boresight</div></div>
         </div>
-        <div id="coverWrap" style="margin-bottom:16px"></div>
+        <div id="coverWrap" style="margin-bottom:12px"></div>
+        <div id="detailsWrap" class="details" style="display:none">
+          <div class="dstats" id="dstats"></div>
+          <button class="btn ghost small" id="copyReport">Copy report numbers</button>
+        </div>
         <div class="card">
           <div class="ch">
             <h2>S₁₁ response</h2>
@@ -248,7 +255,7 @@
 
 <script>
 const $ = s => document.querySelector(s);
-let CFG=null, params={}, history=[], runs=[], lastSim=null, geoTimer=null;
+let CFG=null, params={}, history=[], runs=[], lastSim=null, lastAnalysis=null, geoTimer=null;
 
 async function api(path, body){
   const r = await fetch(path, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
@@ -360,7 +367,39 @@ function renderResult(r){
   $('#coverWrap').innerHTML = a.covers_wifi_band
     ? '<span class="badge ok">✓ Covers WiFi band (2.400-2.4835 GHz ≤ −10 dB)</span>'
     : '<span class="badge no">✗ Does not cover full WiFi band</span>';
+
+  // details strip: S11@2.45, -10 dB bandwidth + cutoffs, input impedance
+  const parts = [];
+  parts.push(`<span><b>S₁₁@2.45</b>${a.s11_at_target.toFixed(1)} dB</span>`);
+  if(a.bandwidth_mhz!=null)
+    parts.push(`<span><b>−10 dB BW</b>${a.bandwidth_mhz.toFixed(0)} MHz</span>`,
+               `<span><b>Band</b>${a.cutoff_lo.toFixed(3)}–${a.cutoff_hi.toFixed(3)} GHz</span>`);
+  if(a.zin_target)
+    parts.push(`<span><b>Zin@2.45</b>${a.zin_target.re.toFixed(1)}${a.zin_target.im>=0?'+':''}${a.zin_target.im.toFixed(1)}j Ω</span>`);
+  $('#dstats').innerHTML = parts.join('');
+  $('#detailsWrap').style.display = 'flex';
+  lastAnalysis = a;
   drawChart();
+}
+
+// Build the report-ready results block and copy it to the clipboard.
+function copyReportNumbers(){
+  const a = lastAnalysis; if(!a) return;
+  const L = [];
+  L.push('Quantity\tResult');
+  L.push(`Deepest S11 minimum\t${a.resonant_freq.toFixed(4)} GHz, ${a.min_s11.toFixed(2)} dB`);
+  L.push(`S11 at 2.45 GHz\t${a.s11_at_target.toFixed(2)} dB`);
+  if(a.bandwidth_mhz!=null){
+    L.push(`-10 dB lower cutoff\t${a.cutoff_lo.toFixed(4)} GHz`);
+    L.push(`-10 dB upper cutoff\t${a.cutoff_hi.toFixed(4)} GHz`);
+    L.push(`-10 dB bandwidth\t${a.bandwidth_mhz.toFixed(1)} MHz`);
+  }
+  if(a.zin_target) L.push(`Input impedance at 2.45 GHz\t${a.zin_target.re}${a.zin_target.im>=0?'+':''}${a.zin_target.im}j ohm`);
+  if(lastSim && lastSim.gain!=null && CFG.data_source!=='synthetic')
+    L.push(`Total efficiency\t${(lastSim.gain*100).toFixed(2)} %`);
+  const txt = L.join('\n');
+  navigator.clipboard.writeText(txt);
+  const b=$('#copyReport'); b.textContent='Copied ✓'; setTimeout(()=>b.textContent='Copy report numbers',1400);
 }
 
 // ---------- chart ----------
@@ -499,6 +538,7 @@ $('#chatBtn').onclick=chat;
 $('#chatIn').addEventListener('keydown',e=>{ if(e.key==='Enter') chat(); });
 $('#optBtn').onclick=optimize;
 $('#csvBtn').onclick=downloadCsv;
+$('#copyReport').onclick=copyReportNumbers;
 $('#copyVba').onclick=()=>{ navigator.clipboard.writeText($('#vba').textContent); $('#copyVba').textContent='Copied ✓'; setTimeout(()=>$('#copyVba').textContent='Copy VBA',1200); };
 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{ if(lastSim) drawChart(); });
 </script>
