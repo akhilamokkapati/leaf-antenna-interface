@@ -309,12 +309,18 @@ def _interpret_with_rules(message: str, current_params: dict) -> dict:
         delta = int(n) if n is not None else 1
         if re.search(r"\b(remove|fewer|less|reduce|decrease)\b", msg):
             delta = -delta
-        new = clip_param("num_fin_pairs", cur + delta)
-        if new == cur:  # already clamped at the min (3) or max (8)
+        raw = cur + delta
+        new = clip_param("num_fin_pairs", raw)
+        if new == cur:  # already at the min (3) or max (8) - nothing changed
             edge = "maximum of 8" if delta > 0 else "minimum of 3"
             way = "higher" if delta > 0 else "lower"
             return {"changes": {},
                     "reply": f"Already at the {edge} fin pairs - can't go {way} (the macro clamps at 8)."}
+        if new != raw:  # asked for more than the range allows - capped
+            why = "the macro caps fins at 8" if delta > 0 else "fins can't go below 3"
+            return {"changes": {"num_fin_pairs": new},
+                    "reply": f"You asked for {int(raw)}, but {why} - set it to {new}. "
+                             f"Press Run to simulate."}
         return {"changes": {"num_fin_pairs": new},
                 "reply": f"Changed fin pairs from {cur} to {new}. Press Run to simulate."}
 
