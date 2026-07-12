@@ -21,10 +21,66 @@ import re
 
 from cst_link import PARAM_SPEC, PARAM_ORDER, clip_param, defaults
 
-# Chat model. The project prompt asked for "claude-sonnet-4-6"; it's a single
-# configurable constant. Current valid alternatives include "claude-sonnet-5"
-# and "claude-opus-4-8" - change this one line to switch models.
-CHAT_MODEL = "claude-sonnet-4-6"
+try:
+    from cst_link import _WORK_DIR  # folder next to the app / exe (for the key file)
+except Exception:
+    _WORK_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Chat model. Any current model ID works; Opus 4.8 is the most capable. Each chat
+# turn is tiny (a few hundred tokens), so cost per message is a fraction of a
+# cent. Switch to "claude-haiku-4-5-20251001" for the cheapest/fastest, or
+# "claude-sonnet-5" for a middle ground - just change this one line.
+CHAT_MODEL = "claude-opus-4-8"
+
+
+# ---------------------------------------------------------------------------
+# API key resolution
+# ---------------------------------------------------------------------------
+# Priority: (1) ANTHROPIC_API_KEY env var, (2) a plain-text anthropic_key.txt
+# file dropped next to the app/exe (easy for non-coders; gitignored so it never
+# leaks). Returns None when no key is available -> we use the offline rules.
+def _resolve_api_key():
+    key = os.environ.get("ANTHROPIC_API_KEY")
+    if key and key.strip():
+        return key.strip()
+    for name in ("anthropic_key.txt", "ANTHROPIC_KEY.txt"):
+        path = os.path.join(_WORK_DIR, name)
+        if os.path.isfile(path):
+            try:
+                k = open(path, encoding="utf-8").read().strip()
+                if k:
+                    return k
+            except Exception:
+                pass
+    return None
+
+
+_ANTHROPIC_OK = None  # cached: is the anthropic package importable in this build?
+
+
+def _anthropic_importable() -> bool:
+    global _ANTHROPIC_OK
+    if _ANTHROPIC_OK is None:
+        try:
+            import anthropic  # noqa: F401
+            _ANTHROPIC_OK = True
+        except Exception:
+            _ANTHROPIC_OK = False
+    return _ANTHROPIC_OK
+
+
+def ai_status() -> str:
+    """'ready' (key + package), 'no_key', or 'no_package' - for diagnostics/UI."""
+    if _resolve_api_key() is None:
+        return "no_key"
+    if not _anthropic_importable():
+        return "no_package"
+    return "ready"
+
+
+def ai_enabled() -> bool:
+    """True when the assistant will actually run on Claude (key AND package present)."""
+    return ai_status() == "ready"
 
 
 # ---------------------------------------------------------------------------
@@ -36,11 +92,12 @@ def interpret(message: str, current_params: dict) -> dict:
     if not message:
         return {"changes": {}, "reply": "Tell me what to change, e.g. 'add 2 fins'."}
 
-    if os.environ.get("ANTHROPIC_API_KEY"):
+    key = _resolve_api_key()
+    if key:
         try:
-            return _interpret_with_claude(message, current_params)
+            return _interpret_with_claude(message, current_params, key)
         except Exception:
-            # Any failure -> silently fall back to the rule parser.
+            # Any failure (no network, bad key, bad JSON) -> offline rules.
             pass
     return _interpret_with_rules(message, current_params)
 
@@ -50,8 +107,12 @@ def interpret(message: str, current_params: dict) -> dict:
 # ---------------------------------------------------------------------------
 def _system_prompt() -> str:
     lines = [
-        "You translate a user's plain-English request into parameter edits for a",
-        "2.45 GHz biomimetic 'leaf' WiFi antenna designed in CST.",
+        "You are the design assistant for an interactive tool that tunes a 2.45 GHz",
+        "biomimetic 'leaf'-shaped WiFi antenna, simulated in CST Studio Suite. You do",
+        "two things: (1) change design parameters when the user asks, and (2) answer",
+        "questions about the antenna, the physics, RF/EM concepts, or how to use the tool.",
+        "Be friendly, concise, and correct. This antenna is a student project (SUTD",
+        "30.102 EM 1D); it also demonstrates near-field water-level (flood) sensing.",
         "",
         "Tunable parameters (name: range, default - effect):",
     ]
@@ -62,28 +123,35 @@ def _system_prompt() -> str:
     lines += [
         "",
         "Physics: longer leaf_length -> lower resonance; more num_fin_pairs -> lower",
-        "resonance AND deeper match; wider fin_width -> deeper match; larger",
-        "leaf_ground_gap -> detune/shallower match; rim_width best near 4.2.",
+        "resonance AND deeper match (the macro clamps fins at 8); wider fin_width ->",
+        "deeper match; smaller leaf_ground_gap -> more coupling / better match;",
+        "rim_width best near 4.2. S11 (return loss) below -10 dB = a good match.",
+        "As water rises into the near field, effective permittivity rises and the",
+        "resonance shifts down - that frequency shift is the sensing principle.",
         "",
-        "Reply with ONLY a JSON object, no prose, no code fences:",
-        '{"changes": {"<param>": <number>, ...}, "reply": "<one short sentence>"}',
-        "Only include parameters you are changing. Numbers must be within range.",
-        "If the user only asks a question, return empty changes and answer in reply.",
+        "ALWAYS reply with ONLY a JSON object - no prose, no code fences:",
+        '{"changes": {"<param>": <number>, ...}, "reply": "<your message to the user>"}',
+        "- Put ONLY parameters you are changing in 'changes'; numbers must be in range.",
+        "  After a change, remind them to press Run. Convert relative asks ('add 2 fins')",
+        "  to the resulting absolute value using the current parameters given below.",
+        "- If the user only asks a question or chats, use an empty 'changes' object and",
+        "  put your full answer in 'reply' (2-4 sentences max, plain text).",
+        "Do not use em dashes.",
     ]
     return "\n".join(lines)
 
 
-def _interpret_with_claude(message: str, current_params: dict) -> dict:
+def _interpret_with_claude(message: str, current_params: dict, api_key: str) -> dict:
     import anthropic  # imported lazily so the app runs without the package
 
-    client = anthropic.Anthropic()  # reads ANTHROPIC_API_KEY from env
+    client = anthropic.Anthropic(api_key=api_key)
     user_block = (
         f"Current parameters: {json.dumps(current_params)}\n"
-        f"User request: {message}"
+        f"User message: {message}"
     )
     resp = client.messages.create(
         model=CHAT_MODEL,
-        max_tokens=400,
+        max_tokens=500,
         system=_system_prompt(),
         messages=[{"role": "user", "content": user_block}],
     )

@@ -94,6 +94,8 @@ def _config() -> dict:
     return {
         "demo_mode": cst_link.DEMO_MODE,
         "data_source": cst_link.data_source(),   # "live" | "cached" | "synthetic"
+        "ai_chat": chatbot.ai_enabled(),         # assistant runs on Claude vs offline rules
+        "ai_status": chatbot.ai_status(),        # "ready" | "no_key" | "no_package"
         "banner": status_banner(),
         "spec": spec,
         "order": PARAM_ORDER,

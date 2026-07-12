@@ -15,6 +15,10 @@ leaf_live/
 
 # Local env / editor
 .env
+# API key for the AI assistant - NEVER commit this
+anthropic_key.txt
+ANTHROPIC_KEY.txt
+cst_py_path.txt
 .vscode/
 .idea/
 

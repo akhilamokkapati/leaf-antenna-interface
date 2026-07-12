@@ -60,9 +60,12 @@ CST results.
 ## Features
 
 - **Sliders** for all six macro parameters (`num_fin_pairs` steps by 1).
-- **Chatbot**: "add 2 fins", "set leaf length to 80", "make it resonate lower",
-  "deeper match", "reset". Uses Claude if `ANTHROPIC_API_KEY` is set, otherwise a
-  built-in offline rule parser.
+- **AI assistant**: a Claude-powered chatbot that both **changes the design**
+  ("add 2 fins", "set leaf length to 80", "make it resonate lower", "deeper
+  match", "reset") and **answers questions** about the antenna, the physics, or
+  how to read the results. Add a key to enable it (below); with no key it falls
+  back to a built-in offline rule parser. The header shows an **AI** / **OFFLINE**
+  badge so you always know which is running.
 - **Run**: S1,1 plot (WiFi band shaded, −10 dB line, previous runs overlaid faded
   for fin-count comparison), metric cards (resonant freq vs 2.45 GHz, min S1,1,
   max gain), and a green/red "covers WiFi band" badge.
@@ -87,6 +90,24 @@ CST results.
 | `leaf_ground_gap`   | 2-12 mm    | 5.0     | larger → detunes / shallower match       |
 
 **Target:** resonance at 2.45 GHz, S1,1 ≤ −10 dB across 2.400-2.4835 GHz.
+
+---
+
+## Enable the AI assistant (optional)
+
+The design assistant runs on **Claude** when it has an API key; otherwise it uses
+the offline rule parser. Each message is tiny, so cost is a fraction of a cent.
+
+1. Get a key from **[console.anthropic.com](https://console.anthropic.com)** (starts with `sk-ant-`).
+2. **Easiest (exe or source):** create a plain-text file named **`anthropic_key.txt`**
+   next to `LeafAntenna.exe` (or next to `server.py`) containing just the key, and
+   restart. The header badge turns to **AI**.
+   - Or set an environment variable instead: `ANTHROPIC_API_KEY=sk-ant-...`.
+3. The key is **yours** - `anthropic_key.txt` is git-ignored and never committed or
+   shared. Each person enabling AI uses their own key.
+
+> The public demo link stays on the offline assistant unless a key is set on the
+> host - don't put a key on a public URL where anyone could spend it.
 
 ---
 
