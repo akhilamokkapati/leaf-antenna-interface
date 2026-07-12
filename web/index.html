@@ -390,9 +390,11 @@ function renderResult(r){
   $('#mS11').textContent = a.min_s11.toFixed(1)+' dB';
   $('#mGain').textContent = r.gain==null ? '-'
     : (CFG.data_source==='synthetic' ? r.gain.toFixed(2)+' dBi' : (r.gain*100).toFixed(1)+' %');
+  const onTarget = a.covers_wifi_band && Math.abs(dMHz) <= 20;
   $('#coverWrap').innerHTML = a.covers_wifi_band
-    ? '<span class="badge ok">✓ Covers WiFi band (2.400-2.4835 GHz ≤ −10 dB)</span>'
+    ? '<span class="badge ok">✓ Covers WiFi band (2.400-2.4835 GHz ≤ −10 dB)'+(onTarget?' 🎉':'')+'</span>'
     : '<span class="badge no">✗ Does not cover full WiFi band</span>';
+  if(onTarget) partyPopper();
 
   // details strip: S11@2.45, -10 dB bandwidth + cutoffs, input impedance
   const parts = [];
@@ -406,6 +408,37 @@ function renderResult(r){
   $('#detailsWrap').style.display = 'flex';
   lastAnalysis = a;
   drawChart();
+}
+
+// ---------- party popper: fires when a run lands on 2.45 GHz + covers the band ----------
+function partyPopper(){
+  let cv=document.getElementById('confetti');
+  if(!cv){ cv=document.createElement('canvas'); cv.id='confetti';
+    cv.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:9999';
+    document.body.appendChild(cv); }
+  const ctx=cv.getContext('2d'), W=cv.width=innerWidth, H=cv.height=innerHeight;
+  const cols=['#2da492','#37b89a','#f4a259','#e76f51','#f6c85f','#6ad6c0','#ffffff'];
+  const P=[];
+  function burst(x0,vx0){
+    for(let i=0;i<90;i++){
+      const ang=(-Math.PI/2)+(Math.random()-0.5)*1.0, sp=9+Math.random()*10;
+      P.push({x:x0,y:H+8,vx:Math.cos(ang)*sp+vx0,vy:Math.sin(ang)*sp,
+        g:0.28+Math.random()*0.12,c:cols[(Math.random()*cols.length)|0],
+        s:5+Math.random()*6,rot:Math.random()*6.28,vr:(Math.random()-0.5)*0.45,life:0,max:120+Math.random()*45});
+    }
+  }
+  burst(64,4); burst(W-64,-4);               // two poppers, bottom corners, aimed inward+up
+  (function tick(){
+    ctx.clearRect(0,0,W,H); let alive=0;
+    for(const p of P){
+      if(p.life>p.max) continue; alive++;
+      p.life++; p.vy+=p.g; p.x+=p.vx; p.y+=p.vy; p.vx*=0.99; p.rot+=p.vr;
+      ctx.save(); ctx.globalAlpha=Math.max(0,1-p.life/p.max);
+      ctx.translate(p.x,p.y); ctx.rotate(p.rot); ctx.fillStyle=p.c;
+      ctx.fillRect(-p.s/2,-p.s/2,p.s,p.s*0.6); ctx.restore();
+    }
+    if(alive>0) requestAnimationFrame(tick); else cv.remove();
+  })();
 }
 
 // Build the report-ready results block and copy it to the clipboard.
