@@ -217,6 +217,13 @@ def _knowledge(msg: str) -> dict:
     """Answer common concept questions (offline). Returns {changes:{}, reply}."""
     def r(t):
         return {"changes": {}, "reply": t}
+    if any(k in msg for k in ("what can you do", "what do you do", "who are you",
+                              "what are you", "your job", "commands", "capabilit")):
+        return r("I'm the design assistant. I can change the antenna for you - try "
+                 "'add 2 fins', 'set leaf length to 80', 'make it resonate lower', "
+                 "'deeper match', or 'reset' - and I can explain things like S11, "
+                 "resonance, bandwidth, impedance, the fins, or the water-level sensing. "
+                 "After a change, press Run to simulate in CST.")
     if "s11" in msg or "s-11" in msg or "return loss" in msg or "reflect" in msg:
         return r("S11 (return loss) is how much power bounces back instead of radiating. "
                  "More negative is better - below -10 dB means over 90% of the power is accepted.")
@@ -275,6 +282,18 @@ def _interpret_with_rules(message: str, current_params: dict) -> dict:
             "changes": defaults(),
             "reply": "Reset all six parameters to their defaults.",
         }
+
+    # 1b) greetings / thanks / small talk -> friendly, conversational replies
+    if re.match(r"^(hi|hey+|hello+|yo|hiya|howdy|sup|greetings|good (morning|afternoon|evening))\b", msg):
+        return {"changes": {}, "reply":
+                "Hey! I can tune the antenna for you (try 'add 2 fins' or 'make it "
+                "resonate lower') or answer questions about the design, S11, resonance, "
+                "and more. What would you like to do?"}
+    if re.search(r"\b(thank|thanks|thx|ty|cheers|appreciate)\b", msg):
+        return {"changes": {}, "reply":
+                "Anytime! Ask me to change anything else, or to explain a result."}
+    if re.match(r"^(bye|goodbye|see ya|see you|cya)\b", msg):
+        return {"changes": {}, "reply": "See you! Press Run whenever you're ready to simulate."}
 
     # 2) concept questions (interrogative start) -> answer, don't tune.
     #    Guarded to interrogative openers so imperatives like "make it resonate

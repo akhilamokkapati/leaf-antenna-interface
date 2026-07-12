@@ -333,9 +333,8 @@ async function api(path, body){
     $('#chatIn').placeholder = 'Ask me anything, or tell me what to change';
     addMsg('assistant', "Hi! I'm your AI design assistant. Ask me to change the antenna (e.g. “add 2 fins”, “make it resonate lower”) or ask anything about the design, the physics, or how to read the results.");
   } else {
-    aiBadge.textContent = 'OFFLINE'; aiBadge.className = 'aibadge off';
-    aiBadge.title = 'Rule-based assistant. Add an Anthropic API key to enable the AI.';
-    addMsg('assistant', "Hi! Tell me what to change - e.g. “add 2 fins”, “set leaf length to 80”, or “make it resonate lower”.");
+    aiBadge.textContent = ''; aiBadge.className = 'aibadge';  // no scary label - it just works
+    addMsg('assistant', "Hi! I'm your design assistant. Tell me what to change - e.g. “add 2 fins”, “set leaf length to 80”, “make it resonate lower”, or “deeper match” - or ask me about the antenna, S11, resonance, or the water-level sensing.");
   }
   refreshGeometry(); refreshVba();
 })();
