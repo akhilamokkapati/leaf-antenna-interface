@@ -75,21 +75,29 @@ def _resolve_cst_py_path() -> str:
                 return p
         except Exception:
             pass
-    # 3) auto-detect: scan common roots for any CST Studio Suite version
-    roots = [r"C:\Program Files (x86)", r"C:\Program Files",
-             r"D:\Program Files (x86)", r"D:\Program Files"]
+    # 3) auto-detect: scan every drive for any CST Studio Suite / SIMULIA install.
+    # We check the drive root, Program Files (x86/64), Dassault folders, and one
+    # level deep (e.g. D:\Software\CST...), across C: through H:.
+    drives = [d + ":\\" for d in "CDEFGH" if os.path.isdir(d + ":\\")]
+    subroots = ["", "Program Files", "Program Files (x86)",
+                "Program Files\\Dassault Systemes", "Program Files (x86)\\Dassault Systemes",
+                "Dassault Systemes", "*"]
     patterns = [
         r"CST Studio Suite *\AMD64\python_cst_libraries",
-        r"Dassault Systemes\*\CSTStudioSuite*\AMD64\python_cst_libraries",
-        r"Dassault Systemes\SIMULIA\*\*\AMD64\python_cst_libraries",
+        r"*\CSTStudioSuite*\AMD64\python_cst_libraries",
+        r"*\CST Studio Suite *\AMD64\python_cst_libraries",
+        r"SIMULIA\*\*\AMD64\python_cst_libraries",
     ]
     found = []
-    for root in roots:
-        for pat in patterns:
-            found += glob.glob(os.path.join(root, pat))
-    found = [f for f in found if os.path.isdir(f)]
+    for drive in drives:
+        for sub in subroots:
+            for pat in patterns:
+                try:
+                    found += glob.glob(os.path.join(drive, sub, pat))
+                except Exception:
+                    pass
+    found = sorted({f for f in found if os.path.isdir(f)}, reverse=True)  # newest first
     if found:
-        found.sort(reverse=True)  # newest version year first
         return found[0]
     # fall back to the standard 2025 path (used only for the error message)
     return env or r"C:\Program Files (x86)\CST Studio Suite 2025\AMD64\python_cst_libraries"
