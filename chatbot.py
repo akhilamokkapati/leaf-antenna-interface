@@ -145,6 +145,58 @@ def _num(text: str):
     return float(m.group()) if m else None
 
 
+def _knowledge(msg: str) -> dict:
+    """Answer common concept questions (offline). Returns {changes:{}, reply}."""
+    def r(t):
+        return {"changes": {}, "reply": t}
+    if "s11" in msg or "s-11" in msg or "return loss" in msg or "reflect" in msg:
+        return r("S11 (return loss) is how much power bounces back instead of radiating. "
+                 "More negative is better - below -10 dB means over 90% of the power is accepted.")
+    if "resonan" in msg or "resonate" in msg:
+        return r("Resonance is the frequency where the antenna works best - the deepest dip in "
+                 "the S11 curve. We tune it to 2.45 GHz (the WiFi band).")
+    if "bandwidth" in msg:
+        return r("Bandwidth is the span of frequencies where S11 stays below -10 dB. Wider = the "
+                 "antenna tolerates more detuning.")
+    if "impedance" in msg or "matching" in msg or "50 ohm" in msg or "50ohm" in msg:
+        return r("Impedance matching makes the antenna look like 50 ohm to the feed, so power "
+                 "transfers with minimal reflection. A perfect match is 50 + j0 ohm.")
+    if "efficiency" in msg or "gain" in msg or "directiv" in msg:
+        return r("Total efficiency is the fraction of input power actually radiated (it includes "
+                 "the impedance match) - higher is better. Real gain/directivity needs farfield "
+                 "post-processing, so this tool reports efficiency instead.")
+    if "water" in msg or "flood" in msg or "sensing" in msg or "permittivity" in msg:
+        return r("As water rises into the antenna's near field, the effective permittivity goes up "
+                 "and the resonance shifts down. Tracking that shift is how it senses water level "
+                 "(contactless flood monitoring) - try the water-level slider under the S11 plot.")
+    if "fin" in msg or "vein" in msg:
+        return r("The fins (leaf veins) are shunt stubs along the central stem. They add capacitance "
+                 "that lowers the resonance and deepens the impedance match. The macro clamps at 8.")
+    if "leaf length" in msg or "leaf_length" in msg or ("leaf" in msg and "length" in msg) or "length" in msg:
+        return r("leaf_length is the primary frequency knob: a longer leaf lowers the resonant "
+                 "frequency, a shorter leaf raises it.")
+    if "rim" in msg:
+        return r("rim_width is the outer leaf trace width; it mainly affects the impedance match "
+                 "(best near 4.2 mm).")
+    if "ground" in msg or "gap" in msg:
+        return r("leaf_ground_gap is the gap to the ground plane. A smaller gap increases capacitive "
+                 "coupling and improves the match (adjustable down to 0.1 mm).")
+    if "stem" in msg:
+        return r("center_stem_width is the feed-stem width - it has a small effect on frequency and "
+                 "the match.")
+    if "antenna" in msg:
+        return r("An antenna converts electrical signals into radio waves and back. This is a "
+                 "2.45 GHz leaf-shaped WiFi antenna - the leaf rim and internal 'fin' veins tune "
+                 "where it resonates.")
+    if any(k in msg for k in ("how", "work", "use", "do i", "help")):
+        return r("Tune the 2.45 GHz leaf antenna with the sliders or by asking me (e.g. 'add 2 fins', "
+                 "'set leaf length to 80', 'make it resonate lower', 'deeper match'), then press Run "
+                 "to simulate S11 in CST. I can also explain terms like S11, resonance, impedance.")
+    return r("I can tune the antenna ('add 2 fins', 'set leaf length to 80', 'resonate lower', "
+             "'deeper match', 'reset') and explain terms like S11, resonance, impedance, bandwidth, "
+             "fins. What would you like?")
+
+
 def _interpret_with_rules(message: str, current_params: dict) -> dict:
     msg = message.lower().strip()
     params = dict(current_params)
@@ -156,16 +208,11 @@ def _interpret_with_rules(message: str, current_params: dict) -> dict:
             "reply": "Reset all six parameters to their defaults.",
         }
 
-    # 2) "why" answers (a couple of canned explanations)
-    if msg.startswith("why") or "explain" in msg:
-        if "fin" in msg:
-            return {"changes": {}, "reply":
-                    "More fins add capacitive loading, which lowers resonance and deepens the match."}
-        if "length" in msg or "leaf" in msg:
-            return {"changes": {}, "reply":
-                    "Leaf length is the primary frequency knob - longer leaf, lower resonance."}
-        return {"changes": {}, "reply":
-                "Resonance is set mainly by leaf_length and fin count; match depth by fins and fin_width."}
+    # 2) concept questions (interrogative start) -> answer, don't tune.
+    #    Guarded to interrogative openers so imperatives like "make it resonate
+    #    lower?" still tune, while "why more fins" / "what is S11" get answered.
+    if re.match(r"^(why|what|whats|what'?s|which|explain|define|how|tell me|is |are |does )", msg):
+        return _knowledge(msg)
 
     # 3) relative fin changes - MUST run before numeric direct-set so
     #    "add 2 fins" isn't misread as num_fin_pairs = 2.
@@ -176,8 +223,12 @@ def _interpret_with_rules(message: str, current_params: dict) -> dict:
         if re.search(r"\b(remove|fewer|less|reduce|decrease)\b", msg):
             delta = -delta
         new = clip_param("num_fin_pairs", cur + delta)
-        params_changes = {"num_fin_pairs": new}
-        return {"changes": params_changes,
+        if new == cur:  # already clamped at the min (3) or max (8)
+            edge = "maximum of 8" if delta > 0 else "minimum of 3"
+            way = "higher" if delta > 0 else "lower"
+            return {"changes": {},
+                    "reply": f"Already at the {edge} fin pairs - can't go {way} (the macro clamps at 8)."}
+        return {"changes": {"num_fin_pairs": new},
                 "reply": f"Changed fin pairs from {cur} to {new}. Press Run to simulate."}
 
     # 4) match intent - "deeper/better match" -> fin_width +0.3
@@ -213,11 +264,5 @@ def _interpret_with_rules(message: str, current_params: dict) -> dict:
                 return {"changes": {canonical: new},
                         "reply": f"Set {canonical} to {new}. Press Run to simulate."}
 
-    # 7) unknown -> helpful hint
-    return {
-        "changes": {},
-        "reply": (
-            "I didn't catch that. Try: 'add 2 fins', 'set leaf length to 80', "
-            "'make it resonate lower', 'deeper match', or 'reset'."
-        ),
-    }
+    # 7) not a tuning command -> answer as a concept question / helpful hint
+    return _knowledge(msg)
