@@ -390,9 +390,9 @@ function renderResult(r){
   $('#mS11').textContent = a.min_s11.toFixed(1)+' dB';
   $('#mGain').textContent = r.gain==null ? '-'
     : (CFG.data_source==='synthetic' ? r.gain.toFixed(2)+' dBi' : (r.gain*100).toFixed(1)+' %');
-  const onTarget = a.covers_wifi_band && Math.abs(dMHz) <= 20;
-  $('#coverWrap').innerHTML = a.covers_wifi_band
-    ? '<span class="badge ok">✓ Covers WiFi band (2.400-2.4835 GHz ≤ −10 dB)'+(onTarget?' 🎉':'')+'</span>'
+  const onTarget = a.covers_wifi_band;   // the design goal: S11 <= -10 dB across the whole band
+  $('#coverWrap').innerHTML = onTarget
+    ? '<span class="badge ok">✓ Covers WiFi band (2.400-2.4835 GHz ≤ −10 dB) 🎉</span>'
     : '<span class="badge no">✗ Does not cover full WiFi band</span>';
   if(onTarget) partyPopper();
 
